@@ -1,0 +1,68 @@
+{
+    "terrain": {
+        "name": "ControlDeck",
+        "version": "0.2.0",
+        "description": "Universal control input debugging, relay, and recording tool"
+    },
+    "mode": "control",
+    "theme": "controldeck",
+    "layout": {
+        "columns": "1fr 320px",
+        "mainMaxWidth": "720px",
+        "gap": "15px"
+    },
+    "header": {
+        "show": true,
+        "title": "ControlDeck",
+        "icon": "⌘",
+        "controls": [
+            { "id": "profile-select", "type": "select" },
+            { "id": "btn-send", "type": "button", "label": "Send", "icon": "📡" },
+            { "id": "btn-receive", "type": "button", "label": "Receive", "icon": "📥" },
+            { "id": "btn-midi", "type": "button", "label": "MIDI", "icon": "🎹" },
+            { "id": "btn-record", "type": "button", "label": "Record", "icon": "⏺" }
+        ],
+        "status": { "id": "connection-status" }
+    },
+    "panels": [
+        {
+            "id": "controller",
+            "title": "Controller",
+            "region": "main",
+            "template": "panel-controller"
+        },
+        {
+            "id": "latency",
+            "title": "Latency",
+            "region": "main",
+            "template": "panel-latency"
+        },
+        {
+            "id": "log",
+            "title": "Log",
+            "region": "sidebar",
+            "template": "panel-log"
+        },
+        {
+            "id": "raw",
+            "title": "Raw",
+            "region": "sidebar",
+            "template": "panel-raw"
+        },
+        {
+            "id": "pong-ai",
+            "title": "Pong AI",
+            "region": "sidebar",
+            "template": "panel-pong-ai"
+        },
+        {
+            "id": "paddlevision",
+            "title": "PaddleVision",
+            "region": "sidebar",
+            "type": "iframe",
+            "src": "paddlevision/index.html"
+        }
+    ],
+    "scripts": ["controldeck.js"],
+    "styles": ["css/controldeck-skin.css"]
+}

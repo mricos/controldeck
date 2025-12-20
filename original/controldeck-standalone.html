@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ControlDeck</title>
+    <style>
+        * { scrollbar-width: thin; scrollbar-color: #3a3d45 #12141a; margin: 0; padding: 0; box-sizing: border-box; }
+        *::-webkit-scrollbar { width: 8px; height: 8px; }
+        *::-webkit-scrollbar-track { background: #12141a; border-radius: 4px; }
+        *::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #3a3d45, #2a2d35); border-radius: 4px; border: 2px solid #12141a; }
+        *::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #4a4d55, #3a3d45); }
+
+        body { font-family: system-ui, -apple-system, sans-serif; background: #0f1115; color: #e0e0e0; min-height: 100vh; padding: 20px; }
+        
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; padding-bottom: 20px; border-bottom: 1px solid #2a2d35; }
+        .header h1 { font-size: 24px; font-weight: 700; background: linear-gradient(135deg, #fff, #888); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        
+        .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .status { font-size: 12px; color: #666; padding: 6px 12px; background: #12141a; border: 1px solid #2a2d35; border-radius: 20px; }
+        .status.connected { color: #6fc; border-color: rgba(74,170,136,0.3); background: rgba(74,170,136,0.1); }
+
+        .btn { background: transparent; border: 1px solid #3a3d45; color: #888; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+        .btn:hover { border-color: #5a5d65; color: #ccc; background: rgba(255,255,255,0.03); }
+        .btn.active { background: rgba(74,170,136,0.15); border-color: #4a8; color: #6fc; box-shadow: 0 0 20px rgba(74,170,136,0.15); }
+        .btn-sm { padding: 3px 10px; font-size: 10px; }
+        .btn.recording { background: rgba(200,60,60,0.2); border-color: #a44; color: #f88; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+        select { background: #1a1c22; border: 1px solid #3a3d45; color: #aaa; padding: 6px 28px 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Cpath fill='%23888' d='M6 8L2 4h8z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; }
+        select:hover { border-color: #5a5d65; color: #ccc; }
+        select:focus { outline: none; border-color: #4a8; box-shadow: 0 0 0 2px rgba(74,170,136,0.2); }
+
+        .grid { display: grid; grid-template-columns: 1fr 320px; gap: 20px; }
+        @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+        .panel { background: linear-gradient(180deg, #181a20, #15171d); border: 1px solid #2a2d35; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.2); transition: all 0.2s; }
+        .panel.collapsed .panel-body { display: none; }
+        .panel.collapsed { box-shadow: none; }
+        .panel-header { background: linear-gradient(180deg, #1e2028, #1a1c24); padding: 12px 16px; font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #2a2d35; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
+        .panel-header:hover { background: linear-gradient(180deg, #252830, #1e2028); }
+        .panel-header::before { content: ''; display: inline-block; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid #555; margin-right: 8px; transition: transform 0.2s; }
+        .panel.collapsed .panel-header::before { transform: rotate(-90deg); }
+        .panel.collapsed .panel-header { border-bottom-color: transparent; }
+        .panel-header .panel-title { display: flex; align-items: center; }
+        .panel-body { padding: 16px; }
+
+        .diagram { position: relative; width: 100%; max-width: 480px; margin: 0 auto; }
+        .diagram svg { width: 100%; height: auto; }
+        .diagram .btn-pad { cursor: pointer; transition: all 0.1s; }
+        .diagram .btn-pad:hover { filter: brightness(1.3); }
+        .diagram .btn-pad.pressed { fill: #4a8; filter: drop-shadow(0 0 8px rgba(68,170,136,0.7)); }
+        .diagram .led { transition: all 0.15s; }
+        .diagram .led.on { fill: #4f8; filter: drop-shadow(0 0 6px rgba(68,255,136,0.8)); }
+        .diagram .stick-pos { transition: transform 0.05s; }
+
+        .latency-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
+        .latency-stat { background: linear-gradient(135deg, #14161c, #12141a); border: 1px solid #2a2d35; border-radius: 6px; padding: 10px 12px; }
+        .latency-stat-label { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .latency-stat-value { font-size: 18px; font-weight: 600; font-family: 'SF Mono', monospace; color: #ccc; }
+        .latency-stat-unit { font-size: 11px; color: #555; }
+
+        .sparkline { height: 48px; background: linear-gradient(135deg, #14161c, #12141a); border: 1px solid #2a2d35; border-radius: 6px; padding: 8px; margin-bottom: 14px; }
+        .sparkline svg { width: 100%; height: 100%; }
+        .sparkline-line { fill: none; stroke: #4a8; stroke-width: 1.5; }
+        .sparkline-area { fill: url(#sparkFill); }
+
+        .percentiles { display: flex; gap: 20px; font-size: 11px; font-family: 'SF Mono', monospace; color: #555; background: #12141a; border: 1px solid #2a2d35; border-radius: 6px; padding: 8px 12px; }
+        .percentiles span { color: #888; }
+
+        .btn-ghost { background: transparent; border: none; color: #555; padding: 2px 6px; cursor: pointer; font-size: 12px; transition: color 0.2s; }
+        .btn-ghost:hover { color: #888; }
+
+        .popup-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .popup-overlay.visible { display: flex; }
+        .popup { background: linear-gradient(180deg, #1e2028, #181a20); border: 1px solid #3a3d45; border-radius: 12px; padding: 20px 24px; max-width: 520px; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }
+        .popup h3 { font-size: 14px; color: #ccc; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .popup-close { background: none; border: none; color: #666; font-size: 18px; cursor: pointer; padding: 0; }
+        .popup-close:hover { color: #aaa; }
+        .popup p { font-size: 12px; color: #888; line-height: 1.6; margin-bottom: 12px; }
+        .popup code { background: #12141a; padding: 2px 6px; border-radius: 4px; font-family: 'SF Mono', monospace; color: #6fc; font-size: 11px; }
+        .popup ul { font-size: 12px; color: #888; margin: 12px 0; padding-left: 20px; }
+        .popup li { margin-bottom: 6px; }
+        .popup .term { color: #6af; font-weight: 600; }
+
+        .log-delta { color: #777; font-size: 10px; }
+        .log-stddev { color: #a6f; font-size: 10px; }
+        .log-bpm { color: #f80; font-size: 10px; font-weight: 600; }
+        .log-options { display: flex; gap: 8px; align-items: center; }
+        .log-options label { font-size: 10px; color: #555; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+        .log-options input[type="checkbox"] { width: 12px; height: 12px; accent-color: #4a8; }
+
+        .log { height: 200px; overflow-y: auto; font-family: 'SF Mono', monospace; font-size: 11px; background: #12141a; border-radius: 6px; padding: 10px; border: 1px solid #2a2d35; }
+        .log-entry { padding: 3px 0; display: flex; gap: 8px; }
+        .log-time { color: #444; }
+        .log-entry.press .log-msg { color: #6fc; }
+        .log-entry.release .log-msg { color: #666; }
+        .log-entry.info .log-msg { color: #6af; }
+        .log-entry.relay .log-msg { color: #c8f; }
+        .log-entry.midi .log-msg { color: #fa6; }
+
+        .raw { font-family: 'SF Mono', monospace; font-size: 10px; background: #12141a; border-radius: 6px; padding: 10px; max-height: 150px; overflow-y: auto; color: #666; border: 1px solid #2a2d35; }
+        .raw-row { display: flex; gap: 6px; margin-bottom: 3px; }
+        .raw-label { color: #555; min-width: 45px; }
+        .raw-value { color: #888; background: rgba(255,255,255,0.02); padding: 1px 5px; border-radius: 3px; min-width: 45px; text-align: right; }
+        .raw-value.active { color: #6fc; background: rgba(74,170,136,0.15); }
+
+        .sidebar { display: flex; flex-direction: column; gap: 15px; }
+
+        .ai-controls { font-size: 11px; }
+        .ai-status { padding: 6px 10px; background: #12141a; border-radius: 4px; margin-bottom: 10px; color: #666; text-align: center; }
+        .ai-status.running { color: #6fc; background: rgba(74,170,136,0.15); }
+        .ai-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .ai-row label { display: flex; align-items: center; gap: 4px; color: #888; min-width: 80px; }
+        .ai-row input[type="checkbox"] { width: 14px; height: 14px; accent-color: #4a8; }
+        .ai-row input[type="range"] { flex: 1; height: 4px; accent-color: #4a8; }
+        .ai-row span { min-width: 35px; color: #6fc; font-family: 'SF Mono', monospace; font-size: 10px; }
+        .ai-state { padding: 6px 10px; background: #12141a; border-radius: 4px; margin-top: 10px; color: #555; font-family: 'SF Mono', monospace; font-size: 10px; }
+
+        /* PaddleVision panel */
+        .pv-status { padding: 6px 10px; background: #12141a; border-radius: 4px; margin-bottom: 10px; color: #666; text-align: center; font-size: 11px; }
+        .pv-status.connected { color: #fa6; background: rgba(255,170,0,0.15); }
+        .pv-values { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+        .pv-value { background: #12141a; border-radius: 4px; padding: 6px; text-align: center; }
+        .pv-label { display: block; font-size: 9px; color: #555; text-transform: uppercase; margin-bottom: 2px; }
+        .pv-num { display: block; font-size: 14px; font-weight: 600; color: #fa6; font-family: 'SF Mono', monospace; }
+        .pv-iframe-container { background: #0a0a0a; border-radius: 6px; overflow: hidden; border: 1px solid #2a2d35; }
+        .pv-iframe-container iframe { width: 100%; height: 320px; border: none; transform-origin: top left; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⌘ ControlDeck <button id="btn-help" class="btn-ghost" title="How to integrate with other apps">?</button></h1>
+            <div class="controls">
+                <select id="profile-select"></select>
+                <button id="btn-send" class="btn">📡 Send</button>
+                <button id="btn-receive" class="btn">📥 Receive</button>
+                <button id="btn-midi" class="btn">🎹 MIDI</button>
+                <button id="btn-record" class="btn">⏺ Record</button>
+            </div>
+            <div id="status" class="status">Waiting for controller...</div>
+        </div>
+
+        <div class="grid">
+            <div class="main">
+                <div class="panel" data-panel="controller">
+                    <div class="panel-header"><span class="panel-title">Controller</span></div>
+                    <div class="panel-body">
+                        <div id="diagram" class="diagram"></div>
+                    </div>
+                </div>
+
+                <div class="panel" style="margin-top:15px;" data-panel="latency">
+                    <div class="panel-header"><span class="panel-title">Latency</span> <span style="display:flex;gap:6px;align-items:center;"><button id="btn-latency-info" class="btn-ghost" title="Latency info">?</button><button id="btn-latency-reset" class="btn btn-sm">Reset</button></span></div>
+                    <div class="panel-body">
+                        <div class="latency-grid">
+                            <div class="latency-stat"><div class="latency-stat-label">Poll Rate</div><div class="latency-stat-value"><span id="poll-rate">--</span><span class="latency-stat-unit"> Hz</span></div></div>
+                            <div class="latency-stat"><div class="latency-stat-label">Input Age</div><div class="latency-stat-value"><span id="input-age">--</span><span class="latency-stat-unit"> ms</span></div></div>
+                            <div class="latency-stat"><div class="latency-stat-label">Jitter</div><div class="latency-stat-value"><span id="jitter">--</span><span class="latency-stat-unit"> ms</span></div></div>
+                        </div>
+                        <div class="sparkline"><svg viewBox="0 0 300 32" preserveAspectRatio="none"><defs><linearGradient id="sparkFill" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="rgba(74,170,136,0.3)"/><stop offset="100%" stop-color="rgba(74,170,136,0)"/></linearGradient></defs><polygon id="spark-area" class="sparkline-area" points=""/><polyline id="spark-line" class="sparkline-line" points=""/></svg></div>
+                        <div class="percentiles">p50: <span id="p50">--</span>ms p95: <span id="p95">--</span>ms p99: <span id="p99">--</span>ms</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="panel" data-panel="log">
+                    <div class="panel-header"><span class="panel-title">Log</span> <span class="log-options"><label><input type="checkbox" id="opt-delta" checked> dt</label><label><input type="checkbox" id="opt-stddev"> stddev</label><label><input type="checkbox" id="opt-bpm"> BPM</label><button id="btn-log-clear" class="btn btn-sm">Clear</button></span></div>
+                    <div class="panel-body"><div id="log" class="log"></div></div>
+                </div>
+                <div class="panel" data-panel="raw">
+                    <div class="panel-header"><span class="panel-title">Raw</span> <button id="btn-copy" class="btn btn-sm">Copy</button></div>
+                    <div class="panel-body"><div id="raw" class="raw"></div></div>
+                </div>
+                <div class="panel" data-panel="pong-ai">
+                    <div class="panel-header"><span class="panel-title">Pong AI</span> <span style="display:flex;gap:4px;"><button id="btn-ai-toggle" class="btn btn-sm">Start AI</button><button id="btn-game-start" class="btn btn-sm">Play</button></span></div>
+                    <div class="panel-body">
+                        <div class="ai-controls">
+                            <div class="ai-status" id="ai-status">AI Stopped</div>
+                            <div class="ai-row">
+                                <label><input type="checkbox" id="ai-p1" checked> P1 (Left)</label>
+                                <input type="range" id="ai-p1-skill" min="0" max="100" value="80" title="P1 Skill">
+                                <span id="ai-p1-skill-val">80%</span>
+                            </div>
+                            <div class="ai-row">
+                                <label><input type="checkbox" id="ai-p2" checked> P2 (Right)</label>
+                                <input type="range" id="ai-p2-skill" min="0" max="100" value="80" title="P2 Skill">
+                                <span id="ai-p2-skill-val">80%</span>
+                            </div>
+                            <div class="ai-row">
+                                <label>Noise:</label>
+                                <input type="range" id="ai-noise" min="0" max="50" value="10" title="Prediction noise">
+                                <span id="ai-noise-val">10%</span>
+                            </div>
+                            <div class="ai-state" id="ai-state">Ball: -- | P1: -- | P2: --</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" data-panel="paddlevision">
+                    <div class="panel-header"><span class="panel-title">PaddleVision</span> <span style="display:flex;gap:4px;"><button id="btn-pv-pop" class="btn btn-sm" title="Open in new window">↗</button><button id="btn-pv-connect" class="btn btn-sm">Connect</button></span></div>
+                    <div class="panel-body">
+                        <div class="pv-status" id="pv-status">Not connected</div>
+                        <div class="pv-values">
+                            <div class="pv-value"><span class="pv-label">Rotation</span><span id="pv-rotation" class="pv-num">--</span></div>
+                            <div class="pv-value"><span class="pv-label">X</span><span id="pv-x" class="pv-num">--</span></div>
+                            <div class="pv-value"><span class="pv-label">Y</span><span id="pv-y" class="pv-num">--</span></div>
+                            <div class="pv-value"><span class="pv-label">Z</span><span id="pv-z" class="pv-num">--</span></div>
+                        </div>
+                        <div class="pv-iframe-container">
+                            <iframe id="pv-iframe" src="paddlevision/index.html" allow="camera; midi"></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Latency Info Popup -->
+    <div id="latency-popup" class="popup-overlay">
+        <div class="popup">
+            <h3>Latency Metrics <button class="popup-close">&times;</button></h3>
+            <p>These metrics help you understand the timing characteristics of your input devices.</p>
+            <ul>
+                <li><span class="term">Poll Rate</span> - How often the browser samples gamepad state (typically 60-144 Hz tied to <code>requestAnimationFrame</code>)</li>
+                <li><span class="term">Input Age</span> - Time since the gamepad hardware last updated its state. Lower = fresher data. Some controllers update at 125-1000 Hz internally.</li>
+                <li><span class="term">Jitter</span> - Standard deviation of input age. High jitter means inconsistent timing, which can affect rhythm games or precise inputs.</li>
+            </ul>
+            <p><strong>Percentiles:</strong> p50 is median latency, p95/p99 show worst-case spikes. For competitive gaming, aim for p99 &lt; 10ms.</p>
+            <p><strong>Log options:</strong></p>
+            <ul>
+                <li><span class="term">dt (delta time)</span> - Time since last event from that control</li>
+                <li><span class="term">stddev</span> - Running standard deviation of delta times (shows timing consistency)</li>
+                <li><span class="term">BPM</span> - Beats per minute for periodic sources (MIDI clock, rhythmic button presses, LFO-style CC)</li>
+            </ul>
+            <p>BPM is calculated when a source shows consistent periodic behavior (low stddev relative to mean interval).</p>
+        </div>
+    </div>
+
+    <!-- Help Popup - Integration Guide -->
+    <div id="help-popup" class="popup-overlay">
+        <div class="popup" style="max-width:620px;">
+            <h3>Integrating ControlDeck with Your App <button class="popup-close">&times;</button></h3>
+
+            <p><strong>ControlDeck</strong> lets you send virtual gamepad input to any web app via <code>BroadcastChannel</code>. Double-click panel headers to collapse them.</p>
+
+            <p style="color:#6af;"><strong>Quick Start:</strong></p>
+            <ol style="font-size:12px;color:#888;margin:12px 0;padding-left:20px;">
+                <li>Open ControlDeck and your target app in separate tabs (same origin)</li>
+                <li>Click <span class="term">Send</span> in ControlDeck to broadcast input</li>
+                <li>Add the polyfill to your target app (see below)</li>
+            </ol>
+
+            <p style="color:#6af;"><strong>Add to your app:</strong></p>
+            <p>Include the polyfill script <em>before</em> your game/app code:</p>
+            <pre style="background:#12141a;padding:12px;border-radius:6px;font-size:11px;color:#6fc;overflow-x:auto;margin:10px 0;"><code>&lt;script src="controldeck-polyfill.js"&gt;&lt;/script&gt;
+&lt;script src="your-app.js"&gt;&lt;/script&gt;</code></pre>
+
+            <p style="color:#6af;"><strong>Or inject at runtime (DevTools console):</strong></p>
+            <pre style="background:#12141a;padding:12px;border-radius:6px;font-size:11px;color:#6fc;overflow-x:auto;margin:10px 0;"><code>const s = document.createElement('script');
+s.src = 'https://your-host/controldeck-polyfill.js';
+document.head.appendChild(s);</code></pre>
+
+            <p style="color:#6af;"><strong>Configuration options:</strong></p>
+            <pre style="background:#12141a;padding:12px;border-radius:6px;font-size:11px;color:#6fc;overflow-x:auto;margin:10px 0;"><code>window.CONTROLDECK_OPTIONS = {
+  channel: 'default',    // Must match ControlDeck channel
+  realGamepads: true,    // Keep real gamepads alongside virtual
+  virtualIndex: 'auto',  // Gamepad index (0-3 or 'auto')
+  debug: false           // Log to console
+};</code></pre>
+
+            <p style="color:#6af;"><strong>How it works:</strong></p>
+            <ul>
+                <li>The polyfill overrides <code>navigator.getGamepads()</code></li>
+                <li>Virtual gamepad appears alongside real ones</li>
+                <li>Events arrive via <code>BroadcastChannel</code> (same-origin only)</li>
+                <li>Standard Gamepad API - compatible with any gamepad-enabled app</li>
+            </ul>
+
+            <p style="color:#6af;"><strong>Cross-origin apps:</strong></p>
+            <p>For apps on different domains, use a browser extension or bookmarklet to inject the polyfill. The polyfill must run in the target page's context.</p>
+        </div>
+    </div>
+
+    <script src="controldeck.js?v=0.3.0"></script>
+    <script>
+    (function() {
+        const DIAGRAM_CLASSIC = `
+        <svg viewBox="0 0 480 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="20" y="30" width="440" height="190" rx="40" fill="#1e2028" stroke="#3a3d45" stroke-width="2"/>
+            <rect x="30" y="40" width="420" height="170" rx="32" fill="none" stroke="#2a2d35"/>
+            <text x="5" y="18" fill="#555" font-size="10">L, L2</text><line x1="35" y1="16" x2="55" y2="30" stroke="#444"/>
+            <text x="435" y="18" fill="#555" font-size="10">R, R2</text><line x1="435" y1="16" x2="415" y2="30" stroke="#444"/>
+            <text x="0" y="85" fill="#555" font-size="10">- select</text><line x1="50" y1="83" x2="135" y2="90" stroke="#444"/>
+            <text x="430" y="85" fill="#555" font-size="10">+ start</text><line x1="428" y1="83" x2="345" y2="90" stroke="#444"/>
+            <text x="0" y="125" fill="#555" font-size="10">d-pad</text><line x1="35" y1="122" x2="65" y2="122" stroke="#444"/>
+            <text x="5" y="185" fill="#555" font-size="10">L3</text><line x1="20" y1="182" x2="100" y2="170" stroke="#444"/>
+            <text x="0" y="210" fill="#555" font-size="10">star</text><line x1="25" y1="207" x2="75" y2="195" stroke="#444"/>
+            <text x="455" y="185" fill="#555" font-size="10">R3</text><line x1="455" y1="182" x2="380" y2="170" stroke="#444"/>
+            <text x="440" y="205" fill="#555" font-size="10">home</text><line x1="438" y1="202" x2="405" y2="190" stroke="#444"/>
+            <text x="428" y="230" fill="#555" font-size="10">LED</text><line x1="426" y1="224" x2="415" y2="205" stroke="#444"/>
+            <text x="200" y="18" fill="#555" font-size="10">pair</text><line x1="213" y1="22" x2="225" y2="42" stroke="#444"/>
+            <text x="250" y="18" fill="#555" font-size="10">power</text><line x1="268" y1="22" x2="255" y2="55" stroke="#444"/>
+            <text x="195" y="255" fill="#555" font-size="10">status LED</text><line x1="230" y1="248" x2="240" y2="225" stroke="#444"/>
+            <rect id="gp-l" class="btn-pad" x="50" y="30" width="70" height="16" rx="4" fill="#2a2d35" stroke="#444"/>
+            <rect id="gp-r" class="btn-pad" x="360" y="30" width="70" height="16" rx="4" fill="#2a2d35" stroke="#444"/>
+            <rect id="gp-select" class="btn-pad" x="148" y="85" width="44" height="16" rx="8" fill="#2a2d35" stroke="#444"/>
+            <rect id="gp-start" class="btn-pad" x="288" y="85" width="44" height="16" rx="8" fill="#2a2d35" stroke="#444"/>
+            <rect x="78" y="98" width="24" height="65" rx="3" fill="#252830" stroke="#444"/>
+            <rect x="58" y="118" width="65" height="24" rx="3" fill="#252830" stroke="#444"/>
+            <rect id="gp-dpad-up" class="btn-pad" x="78" y="98" width="24" height="25" rx="3" fill="#2a2d35"/>
+            <rect id="gp-dpad-down" class="btn-pad" x="78" y="138" width="24" height="25" rx="3" fill="#2a2d35"/>
+            <rect id="gp-dpad-left" class="btn-pad" x="58" y="118" width="25" height="24" rx="3" fill="#2a2d35"/>
+            <rect id="gp-dpad-right" class="btn-pad" x="98" y="118" width="25" height="24" rx="3" fill="#2a2d35"/>
+            <circle id="gp-x" class="btn-pad" cx="365" cy="85" r="16" fill="#2a2d35" stroke="#444"/><text x="365" y="90" text-anchor="middle" fill="#666" font-size="12" font-weight="bold">X</text>
+            <circle id="gp-y" class="btn-pad" cx="330" cy="115" r="16" fill="#2a2d35" stroke="#444"/><text x="330" y="120" text-anchor="middle" fill="#666" font-size="12" font-weight="bold">Y</text>
+            <circle id="gp-a" class="btn-pad" cx="400" cy="115" r="16" fill="#2a2d35" stroke="#444"/><text x="400" y="120" text-anchor="middle" fill="#666" font-size="12" font-weight="bold">A</text>
+            <circle id="gp-b" class="btn-pad" cx="365" cy="145" r="16" fill="#2a2d35" stroke="#444"/><text x="365" y="150" text-anchor="middle" fill="#666" font-size="12" font-weight="bold">B</text>
+            <circle id="gp-l3" class="btn-pad" cx="130" cy="175" r="28" fill="#252830" stroke="#444" stroke-width="2"/>
+            <circle id="stick-left" class="stick-pos" cx="130" cy="175" r="16" fill="#333" stroke="#555"/>
+            <circle id="gp-r3" class="btn-pad" cx="350" cy="175" r="28" fill="#252830" stroke="#444" stroke-width="2"/>
+            <circle id="stick-right" class="stick-pos" cx="350" cy="175" r="16" fill="#333" stroke="#555"/>
+            <circle id="gp-star" class="btn-pad" cx="85" cy="200" r="12" fill="#2a2d35" stroke="#444"/><text x="85" y="204" text-anchor="middle" fill="#555" font-size="10">★</text>
+            <circle id="gp-home" class="btn-pad" cx="395" cy="190" r="12" fill="#2a2d35" stroke="#444"/><text x="395" y="194" text-anchor="middle" fill="#555" font-size="9">⌂</text>
+            <circle id="led-power" class="led" cx="240" cy="65" r="5" fill="#222" stroke="#444"/>
+            <circle id="led-home" class="led" cx="415" cy="200" r="4" fill="#222" stroke="#444"/>
+            <rect id="led-status" class="led" x="220" y="215" width="40" height="6" rx="3" fill="#222" stroke="#444"/>
+        </svg>`;
+
+        const BUTTON_MAP = { a:0,b:1,x:2,y:3,l:4,r:5,l2:6,r2:7,select:8,start:9,l3:10,r3:11,'dpad-up':12,'dpad-down':13,'dpad-left':14,'dpad-right':15,home:16,star:17 };
+
+        let deck, midiEnabled = false, recording = false;
+
+        // =====================================================================
+        // TIMING TRACKER - Delta, StdDev, BPM detection
+        // =====================================================================
+        class TimingTracker {
+            constructor(windowSize = 32) {
+                this.windowSize = windowSize;
+                this.sources = new Map(); // control -> { times: [], deltas: [], lastValue: any }
+            }
+
+            record(control, value) {
+                const now = performance.now();
+                if (!this.sources.has(control)) {
+                    this.sources.set(control, { times: [], deltas: [], lastValue: null, toggleCount: 0 });
+                }
+                const src = this.sources.get(control);
+
+                // Track value toggles (for BPM detection on binary sources)
+                if (src.lastValue !== null && src.lastValue !== value) {
+                    src.toggleCount++;
+                }
+                src.lastValue = value;
+
+                // Calculate delta from last event
+                let delta = null;
+                if (src.times.length > 0) {
+                    delta = now - src.times[src.times.length - 1];
+                    src.deltas.push(delta);
+                    if (src.deltas.length > this.windowSize) src.deltas.shift();
+                }
+
+                src.times.push(now);
+                if (src.times.length > this.windowSize) src.times.shift();
+
+                return { delta, stats: this.getStats(control) };
+            }
+
+            getStats(control) {
+                const src = this.sources.get(control);
+                if (!src || src.deltas.length < 2) {
+                    return { mean: null, stddev: null, bpm: null, isPeriodic: false };
+                }
+
+                const deltas = src.deltas;
+                const n = deltas.length;
+                const mean = deltas.reduce((a, b) => a + b, 0) / n;
+                const variance = deltas.reduce((acc, v) => acc + (v - mean) ** 2, 0) / n;
+                const stddev = Math.sqrt(variance);
+
+                // Coefficient of variation (CV) - if low, source is periodic
+                const cv = mean > 0 ? stddev / mean : 1;
+                const isPeriodic = n >= 4 && cv < 0.25; // Less than 25% variation = periodic
+
+                // Calculate BPM if periodic (60000ms / mean_interval)
+                let bpm = null;
+                if (isPeriodic && mean > 0) {
+                    bpm = 60000 / mean;
+                    // Clamp to reasonable BPM range
+                    if (bpm < 20 || bpm > 300) bpm = null;
+                }
+
+                return { mean, stddev, bpm, isPeriodic, cv, sampleCount: n };
+            }
+
+            // Find the most likely periodic source
+            getMostPeriodicSource() {
+                let best = null;
+                let bestScore = Infinity;
+
+                for (const [control, src] of this.sources) {
+                    const stats = this.getStats(control);
+                    if (stats.isPeriodic && stats.cv < bestScore && stats.sampleCount >= 6) {
+                        bestScore = stats.cv;
+                        best = { control, ...stats };
+                    }
+                }
+                return best;
+            }
+
+            reset() {
+                this.sources.clear();
+            }
+        }
+
+        const timingTracker = new TimingTracker();
+
+        // Log display options
+        const logOptions = {
+            delta: true,
+            stddev: false,
+            bpm: false
+        };
+
+        function init() {
+            const profileSelect = document.getElementById('profile-select');
+            Object.entries(ControlDeck.PROFILES).forEach(([k,v]) => {
+                const opt = document.createElement('option');
+                opt.value = k; opt.textContent = v.name;
+                profileSelect.appendChild(opt);
+            });
+
+            document.getElementById('diagram').innerHTML = DIAGRAM_CLASSIC;
+
+            deck = ControlDeck.init({ profile: 'auto', channel: 'default' });
+
+            deck.on('connected', (e) => {
+                document.getElementById('status').textContent = `Connected: ${e.gamepad.id.substring(0,35)}...`;
+                document.getElementById('status').classList.add('connected');
+                document.getElementById('led-power').classList.add('on');
+                document.getElementById('led-status').classList.add('on');
+                profileSelect.value = e.profile.id;
+                log(`Connected: ${e.profile.name}`, 'info');
+            });
+
+            deck.on('input', (e) => {
+                const controlKey = `${e.source}:${e.control}`;
+                const timing = timingTracker.record(controlKey, e.value);
+
+                if (e.source === 'gamepad') {
+                    if (e.type === 'trigger') {
+                        updateButton(e.control, e.pressed);
+                        logWithTiming(`${e.control} ${e.pressed ? 'pressed' : 'released'}`, e.pressed ? 'press' : 'release', timing);
+                    } else {
+                        updateStick(e.control, e.raw.value);
+                    }
+                } else if (e.source === 'midi') {
+                    logWithTiming(`MIDI ${e.control}: ${e.value.toFixed(2)}`, 'midi', timing);
+                }
+                updateLatency();
+                updateRaw();
+            });
+
+            deck.on('relay', (e) => {
+                log(`[relay] ${e.control} (${e._relayLatency?.toFixed(1)}ms)`, 'relay');
+                if (e.type === 'trigger') updateButton(e.control, e.pressed);
+            });
+
+            profileSelect.addEventListener('change', (e) => deck.gamepad.setProfile(e.target.value));
+
+            document.getElementById('btn-send').addEventListener('click', function() {
+                this.classList.toggle('active');
+                deck.setRelayMode(this.classList.contains('active') ? 'sender' : null);
+                log(this.classList.contains('active') ? 'Sender ON' : 'Sender OFF', 'info');
+            });
+
+            document.getElementById('btn-receive').addEventListener('click', function() {
+                this.classList.toggle('active');
+                deck.setRelayMode(this.classList.contains('active') ? 'receiver' : null);
+                log(this.classList.contains('active') ? 'Receiver ON' : 'Receiver OFF', 'info');
+            });
+
+            document.getElementById('btn-midi').addEventListener('click', async function() {
+                if (!midiEnabled) {
+                    const ok = await deck.midi.init();
+                    if (ok) { midiEnabled = true; this.classList.add('active'); log('MIDI enabled', 'info'); }
+                    else { log('MIDI failed', 'info'); }
+                } else {
+                    midiEnabled = false; this.classList.remove('active'); log('MIDI disabled', 'info');
+                }
+            });
+
+            document.getElementById('btn-record').addEventListener('click', function() {
+                if (!recording) {
+                    deck.startRecording();
+                    recording = true;
+                    this.classList.add('recording');
+                    this.textContent = '⏹ Stop';
+                    log('Recording started', 'info');
+                } else {
+                    const data = deck.stopRecording();
+                    recording = false;
+                    this.classList.remove('recording');
+                    this.textContent = '⏺ Record';
+                    log(`Recorded ${data.length} events`, 'info');
+                    navigator.clipboard.writeText(deck.exportRecording());
+                    log('Copied to clipboard', 'info');
+                }
+            });
+
+            document.getElementById('btn-log-clear').addEventListener('click', () => {
+                document.getElementById('log').innerHTML = '';
+                timingTracker.reset();
+            });
+            document.getElementById('btn-latency-reset').addEventListener('click', () => {
+                deck.gamepad.latency.reset();
+                timingTracker.reset();
+                log('Latency reset', 'info');
+            });
+
+            // Popup handlers
+            document.getElementById('btn-latency-info').addEventListener('click', () => {
+                document.getElementById('latency-popup').classList.add('visible');
+            });
+            document.getElementById('latency-popup').addEventListener('click', (e) => {
+                if (e.target.classList.contains('popup-overlay') || e.target.classList.contains('popup-close')) {
+                    document.getElementById('latency-popup').classList.remove('visible');
+                }
+            });
+
+            // Log option handlers
+            document.getElementById('opt-delta').addEventListener('change', (e) => { logOptions.delta = e.target.checked; });
+            document.getElementById('opt-stddev').addEventListener('change', (e) => { logOptions.stddev = e.target.checked; });
+            document.getElementById('opt-bpm').addEventListener('change', (e) => { logOptions.bpm = e.target.checked; });
+            document.getElementById('btn-copy').addEventListener('click', () => {
+                const state = deck.getState();
+                if (state) { navigator.clipboard.writeText(JSON.stringify(state, null, 2)); log('State copied', 'info'); }
+            });
+
+            // Help popup handler
+            document.getElementById('btn-help').addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById('help-popup').classList.add('visible');
+            });
+            document.getElementById('help-popup').addEventListener('click', (e) => {
+                if (e.target.classList.contains('popup-overlay') || e.target.classList.contains('popup-close')) {
+                    document.getElementById('help-popup').classList.remove('visible');
+                }
+            });
+
+            // Collapsible panels - double-click to toggle
+            setupCollapsiblePanels();
+
+            // Setup Pong AI
+            setupPongAI();
+
+            // Setup PaddleVision
+            setupPaddleVision();
+
+            setupDiagramClicks();
+            log('ControlDeck ready', 'info');
+        }
+
+        // =====================================================================
+        // PONG AI CONTROLLER
+        // =====================================================================
+        let pongAI = null;
+        let pongRelay = null;
+        let pongStateChannel = null;
+
+        function setupPongAI() {
+            // Create AI controller
+            pongAI = new ControlDeck.AIController({ tickRate: 60 });
+            pongAI.loadConfig(ControlDeck.GAME_CONFIGS.pong);
+
+            // Create relay to send to Pong on channel 'pong'
+            // Mode starts as null (disabled) - only activates when AI starts or Play is clicked
+            pongRelay = new ControlDeck.Relay('pong', null, null);
+
+            // Listen for game state from Pong
+            pongStateChannel = new BroadcastChannel('controldeck-pong-state');
+            pongStateChannel.onmessage = (e) => {
+                if (e.data.type === 'gamestate') {
+                    pongAI.updateState(e.data);
+                    updateAIStateDisplay(e.data);
+                }
+            };
+
+            // When AI outputs, send as gamepad events
+            pongAI.on('output', (outputs) => {
+                if (outputs.axes) {
+                    // Send left-y axis for P1
+                    if (outputs.axes[1] !== 0) {
+                        pongRelay.send(ControlDeck.PROTOCOL.createEvent(
+                            'gamepad', 'ControlDeck AI', 'continuous', 'left-y',
+                            (outputs.axes[1] + 1) / 2,
+                            { index: 1, value: outputs.axes[1] },
+                            { channel: 0 }
+                        ));
+                    }
+                    // Send right-y axis for P2
+                    if (outputs.axes[3] !== 0) {
+                        pongRelay.send(ControlDeck.PROTOCOL.createEvent(
+                            'gamepad', 'ControlDeck AI', 'continuous', 'right-y',
+                            (outputs.axes[3] + 1) / 2,
+                            { index: 3, value: outputs.axes[3] },
+                            { channel: 0 }
+                        ));
+                    }
+                }
+            });
+
+            // UI handlers
+            document.getElementById('btn-ai-toggle').addEventListener('click', function() {
+                if (pongAI.running) {
+                    pongAI.stop();
+                    // Disable relay when AI stops
+                    pongRelay.destroy();
+                    pongRelay = new ControlDeck.Relay('pong', null, null);
+                    this.textContent = 'Start AI';
+                    document.getElementById('ai-status').textContent = 'AI Stopped';
+                    document.getElementById('ai-status').classList.remove('running');
+                    log('Pong AI stopped', 'info');
+                } else {
+                    // Enable relay when AI starts
+                    pongRelay.destroy();
+                    pongRelay = new ControlDeck.Relay('pong', 'sender', null);
+                    pongAI.start();
+                    this.textContent = 'Stop AI';
+                    document.getElementById('ai-status').textContent = 'Running on channel: pong';
+                    document.getElementById('ai-status').classList.add('running');
+                    log('Pong AI started - sending to channel: pong', 'info');
+                }
+            });
+
+            // Player enable checkboxes
+            document.getElementById('ai-p1').addEventListener('change', (e) => {
+                pongAI.setParam('p1Enabled', e.target.checked);
+            });
+            document.getElementById('ai-p2').addEventListener('change', (e) => {
+                pongAI.setParam('p2Enabled', e.target.checked);
+            });
+
+            // Skill sliders
+            document.getElementById('ai-p1-skill').addEventListener('input', (e) => {
+                const val = parseInt(e.target.value);
+                pongAI.setParam('p1Skill', val / 100);
+                document.getElementById('ai-p1-skill-val').textContent = val + '%';
+            });
+            document.getElementById('ai-p2-skill').addEventListener('input', (e) => {
+                const val = parseInt(e.target.value);
+                pongAI.setParam('p2Skill', val / 100);
+                document.getElementById('ai-p2-skill-val').textContent = val + '%';
+            });
+
+            // Noise slider
+            document.getElementById('ai-noise').addEventListener('input', (e) => {
+                const val = parseInt(e.target.value);
+                pongAI.setParam('predictionNoise', val / 100);
+                document.getElementById('ai-noise-val').textContent = val + '%';
+            });
+
+            // Game Start/Pause button - sends Start button press to Pong
+            document.getElementById('btn-game-start').addEventListener('click', function() {
+                // Temporarily enable relay if not already active
+                const wasInactive = pongRelay.mode === null;
+                if (wasInactive) {
+                    pongRelay.destroy();
+                    pongRelay = new ControlDeck.Relay('pong', 'sender', null);
+                }
+
+                // Send start button press
+                pongRelay.send(ControlDeck.PROTOCOL.createEvent(
+                    'gamepad', 'ControlDeck UI', 'trigger', 'start', 1,
+                    { index: 9, value: 1 },
+                    { pressed: true, channel: 0 }
+                ));
+                // Release after short delay
+                setTimeout(() => {
+                    pongRelay.send(ControlDeck.PROTOCOL.createEvent(
+                        'gamepad', 'ControlDeck UI', 'trigger', 'start', 0,
+                        { index: 9, value: 0 },
+                        { pressed: false, channel: 0 }
+                    ));
+                    // Disable relay again if it was inactive before
+                    if (wasInactive) {
+                        pongRelay.destroy();
+                        pongRelay = new ControlDeck.Relay('pong', null, null);
+                    }
+                }, 100);
+                log('Sent Start/Pause to Pong', 'info');
+            });
+        }
+
+        function updateAIStateDisplay(state) {
+            const el = document.getElementById('ai-state');
+            const ballDir = state.ballVx > 0 ? '→' : '←';
+            el.textContent = `Ball: ${Math.round(state.ballX)},${Math.round(state.ballY)} ${ballDir} | P1: ${Math.round(state.p1Y)} | P2: ${Math.round(state.p2Y)}`;
+        }
+
+        // =====================================================================
+        // PADDLEVISION INTEGRATION
+        // =====================================================================
+        let pvConnected = false;
+        let pvPollInterval = null;
+
+        function setupPaddleVision() {
+            const iframe = document.getElementById('pv-iframe');
+            const statusEl = document.getElementById('pv-status');
+            const connectBtn = document.getElementById('btn-pv-connect');
+            const popBtn = document.getElementById('btn-pv-pop');
+
+            // Open in new window
+            popBtn.addEventListener('click', () => {
+                window.open('paddlevision/index.html', 'PaddleVision', 'width=800,height=900');
+            });
+
+            // Connect button - start polling iframe's PVision API
+            connectBtn.addEventListener('click', () => {
+                if (pvConnected) {
+                    disconnectPaddleVision();
+                    connectBtn.textContent = 'Connect';
+                } else {
+                    connectPaddleVision();
+                    connectBtn.textContent = 'Disconnect';
+                }
+            });
+
+            // Try to auto-connect when iframe loads
+            iframe.addEventListener('load', () => {
+                log('PaddleVision iframe loaded', 'info');
+            });
+        }
+
+        function connectPaddleVision() {
+            const iframe = document.getElementById('pv-iframe');
+            const statusEl = document.getElementById('pv-status');
+
+            pvConnected = true;
+            statusEl.textContent = 'Connecting...';
+
+            // Poll the iframe's PVision API
+            pvPollInterval = setInterval(() => {
+                try {
+                    const pvWindow = iframe.contentWindow;
+                    if (pvWindow && pvWindow.PVision) {
+                        const pv = pvWindow.PVision;
+                        const vals = pv.getMIDIValues();
+
+                        // Update display
+                        document.getElementById('pv-rotation').textContent = vals.rotation;
+                        document.getElementById('pv-x').textContent = vals.x;
+                        document.getElementById('pv-y').textContent = vals.y;
+                        document.getElementById('pv-z').textContent = vals.z;
+
+                        // Update status
+                        if (pv.state.hand.detected) {
+                            statusEl.textContent = pv.isCalibrated() ? 'Calibrated - Tracking' : 'Hand detected - Not calibrated';
+                            statusEl.classList.add('connected');
+                        } else {
+                            statusEl.textContent = 'No hand detected';
+                            statusEl.classList.remove('connected');
+                        }
+
+                        // Send as gamepad axis events via relay if Send is active
+                        if (document.getElementById('btn-send').classList.contains('active')) {
+                            // Map rotation (0-127) to axis (-1 to 1)
+                            const rotAxis = (vals.rotation / 63.5) - 1;
+                            deck.send(ControlDeck.PROTOCOL.createEvent(
+                                'gamepad', 'PaddleVision', 'continuous', 'paddle',
+                                vals.rotation / 127,
+                                { index: 0, value: rotAxis },
+                                { channel: 0 }
+                            ));
+                        }
+                    }
+                } catch (e) {
+                    // Cross-origin or not ready
+                    statusEl.textContent = 'Cannot access iframe (cross-origin?)';
+                    statusEl.classList.remove('connected');
+                }
+            }, 33); // ~30fps
+
+            log('PaddleVision connected', 'info');
+        }
+
+        function disconnectPaddleVision() {
+            if (pvPollInterval) {
+                clearInterval(pvPollInterval);
+                pvPollInterval = null;
+            }
+            pvConnected = false;
+            document.getElementById('pv-status').textContent = 'Not connected';
+            document.getElementById('pv-status').classList.remove('connected');
+            document.getElementById('pv-rotation').textContent = '--';
+            document.getElementById('pv-x').textContent = '--';
+            document.getElementById('pv-y').textContent = '--';
+            document.getElementById('pv-z').textContent = '--';
+            log('PaddleVision disconnected', 'info');
+        }
+
+        function setupCollapsiblePanels() {
+            document.querySelectorAll('.panel[data-panel]').forEach(panel => {
+                const header = panel.querySelector('.panel-header');
+
+                // Double-click to collapse/expand
+                header.addEventListener('dblclick', (e) => {
+                    // Don't collapse if clicking on buttons/inputs
+                    if (e.target.closest('button, input, label')) return;
+                    panel.classList.toggle('collapsed');
+                    // Save state to localStorage
+                    savePanelState();
+                });
+
+                // Prevent text selection on double-click
+                header.addEventListener('mousedown', (e) => {
+                    if (e.detail > 1) e.preventDefault();
+                });
+            });
+
+            // Restore panel state from localStorage
+            restorePanelState();
+        }
+
+        function savePanelState() {
+            const state = {};
+            document.querySelectorAll('.panel[data-panel]').forEach(panel => {
+                state[panel.dataset.panel] = panel.classList.contains('collapsed');
+            });
+            localStorage.setItem('controldeck-panels', JSON.stringify(state));
+        }
+
+        function restorePanelState() {
+            try {
+                const state = JSON.parse(localStorage.getItem('controldeck-panels') || '{}');
+                Object.entries(state).forEach(([name, collapsed]) => {
+                    const panel = document.querySelector(`.panel[data-panel="${name}"]`);
+                    if (panel && collapsed) panel.classList.add('collapsed');
+                });
+            } catch (e) {}
+        }
+
+        function setupDiagramClicks() {
+            document.querySelectorAll('.btn-pad').forEach(el => {
+                const name = el.id.replace('gp-', '');
+                el.addEventListener('mousedown', () => {
+                    el.classList.add('pressed');
+                    deck.send(ControlDeck.PROTOCOL.createEvent('gamepad', 'ControlDeck UI', 'trigger', name, 1, {}, { pressed: true }));
+                    log(`[ui] ${name} pressed`, 'press');
+                });
+                el.addEventListener('mouseup', () => {
+                    el.classList.remove('pressed');
+                    deck.send(ControlDeck.PROTOCOL.createEvent('gamepad', 'ControlDeck UI', 'trigger', name, 0, {}, { pressed: false }));
+                    log(`[ui] ${name} released`, 'release');
+                });
+                el.addEventListener('mouseleave', () => { if (el.classList.contains('pressed')) el.classList.remove('pressed'); });
+            });
+        }
+
+        function updateButton(name, pressed) {
+            const el = document.getElementById(`gp-${name}`);
+            if (el) el.classList.toggle('pressed', pressed);
+            if (name === 'home') document.getElementById('led-home')?.classList.toggle('on', pressed);
+        }
+
+        function updateStick(name, value) {
+            const el = document.getElementById(name.includes('left') ? 'stick-left' : 'stick-right');
+            if (!el) return;
+            const current = el.getAttribute('transform') || '';
+            const match = current.match(/translate\(([-\d.]+),\s*([-\d.]+)\)/);
+            let x = match ? parseFloat(match[1]) : 0, y = match ? parseFloat(match[2]) : 0;
+            if (name.includes('-x')) x = value * 10;
+            if (name.includes('-y')) y = value * 10;
+            el.setAttribute('transform', `translate(${x},${y})`);
+        }
+
+        function updateLatency() {
+            const stats = deck.getLatency();
+            document.getElementById('poll-rate').textContent = stats.pollRate.toFixed(1);
+            document.getElementById('input-age').textContent = stats.inputAge.avg.toFixed(1);
+            document.getElementById('jitter').textContent = stats.inputAge.jitter.toFixed(1);
+            document.getElementById('p50').textContent = stats.inputAge.p50.toFixed(1);
+            document.getElementById('p95').textContent = stats.inputAge.p95.toFixed(1);
+            document.getElementById('p99').textContent = stats.inputAge.p99.toFixed(1);
+            
+            if (stats.sparklineData.length > 1) {
+                const max = Math.max(20, ...stats.sparklineData);
+                const pts = stats.sparklineData.map((v,i) => `${(i/(stats.sparklineData.length-1))*300},${32-(v/max)*32}`).join(' ');
+                document.getElementById('spark-line').setAttribute('points', pts);
+                document.getElementById('spark-area').setAttribute('points', `0,32 ${pts} 300,32`);
+            }
+        }
+
+        function updateRaw() {
+            const state = deck.getState();
+            if (!state) return;
+            let html = '<div class="raw-row"><span class="raw-label">Btns:</span></div>';
+            state.buttons.forEach((b,i) => {
+                html += `<div class="raw-row"><span class="raw-label">[${i}]</span><span class="raw-value${b.pressed?' active':''}">${b.value.toFixed(2)}</span></div>`;
+            });
+            html += '<div class="raw-row" style="margin-top:6px"><span class="raw-label">Axes:</span></div>';
+            state.axes.forEach((v,i) => {
+                html += `<div class="raw-row"><span class="raw-label">[${i}]</span><span class="raw-value${Math.abs(v)>0.1?' active':''}">${v.toFixed(3)}</span></div>`;
+            });
+            document.getElementById('raw').innerHTML = html;
+        }
+
+        function log(msg, type = 'info') {
+            const el = document.getElementById('log');
+            const time = new Date().toTimeString().split(' ')[0];
+            el.innerHTML += `<div class="log-entry ${type}"><span class="log-time">[${time}]</span><span class="log-msg">${msg}</span></div>`;
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function logWithTiming(msg, type, timing) {
+            const el = document.getElementById('log');
+            const time = new Date().toTimeString().split(' ')[0];
+
+            let extras = '';
+
+            // Delta time
+            if (logOptions.delta && timing.delta !== null) {
+                extras += ` <span class="log-delta">dt:${timing.delta.toFixed(1)}ms</span>`;
+            }
+
+            // Standard deviation
+            if (logOptions.stddev && timing.stats.stddev !== null) {
+                extras += ` <span class="log-stddev">σ:${timing.stats.stddev.toFixed(1)}</span>`;
+            }
+
+            // BPM (only show if source is periodic)
+            if (logOptions.bpm && timing.stats.bpm !== null) {
+                extras += ` <span class="log-bpm">${timing.stats.bpm.toFixed(1)} BPM</span>`;
+            }
+
+            el.innerHTML += `<div class="log-entry ${type}"><span class="log-time">[${time}]</span><span class="log-msg">${msg}</span>${extras}</div>`;
+            el.scrollTop = el.scrollHeight;
+        }
+
+        init();
+    })();
+    </script>
+</body>
+</html>

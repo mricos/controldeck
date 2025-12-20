@@ -1,0 +1,466 @@
+/**
+ * ControlDeck Skin for Terrain
+ * Maps ControlDeck's visual design to Terrain CSS tokens
+ */
+
+:root {
+  /* =============================================
+     BACKGROUNDS
+     ============================================= */
+  --bg-primary: #0f1115;      /* Main body background */
+  --bg-secondary: #181a20;    /* Panel backgrounds */
+  --bg-tertiary: #12141a;     /* Inner elements (log, raw, inputs) */
+  --bg-hover: rgba(255,255,255,0.03);
+
+  /* =============================================
+     BORDERS
+     ============================================= */
+  --border: #2a2d35;          /* Default borders */
+  --border-visible: #3a3d45;  /* More visible borders */
+  --border-active: #4a8;      /* Active/focused borders */
+
+  /* =============================================
+     TEXT
+     ============================================= */
+  --text-primary: #e0e0e0;    /* Main text */
+  --text-secondary: #888;     /* Secondary/labels */
+  --text-tertiary: #555;      /* Muted text */
+  --text-title: #ccc;         /* Panel titles */
+  --text-code: #6fc;          /* Code/values */
+
+  /* =============================================
+     ACCENTS & STATUS
+     ============================================= */
+  --accent-primary: #4a8;     /* Primary accent (buttons, active) */
+  --accent-secondary: #6fc;   /* Secondary accent (highlights) */
+  --success: #6fc;            /* Success/connected */
+  --error: #f88;              /* Error/recording */
+  --warning: #fa6;            /* Warning/PaddleVision */
+
+  /* =============================================
+     TYPOGRAPHY
+     ============================================= */
+  --font-primary: system-ui, -apple-system, sans-serif;
+  --font-secondary: system-ui, -apple-system, sans-serif;
+  --font-code: 'SF Mono', ui-monospace, monospace;
+
+  /* =============================================
+     CURVES (border-radius)
+     ============================================= */
+  --curve-sm: 6px;
+  --curve-md: 10px;
+  --curve-lg: 20px;
+
+  /* =============================================
+     GAPS (spacing)
+     ============================================= */
+  --gap-xs: 4px;
+  --gap-sm: 8px;
+  --gap-md: 15px;
+  --gap-lg: 20px;
+  --gap-xl: 24px;
+
+  /* =============================================
+     TEMPO (transitions)
+     ============================================= */
+  --tempo-fast: 0.1s;
+  --tempo-normal: 0.2s;
+  --tempo-slow: 0.3s;
+}
+
+/* =============================================
+   BODY & CONTAINER OVERRIDES
+   ============================================= */
+body {
+  font-family: var(--font-primary);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  margin: 0;
+  padding: var(--gap-lg);
+}
+
+/* =============================================
+   SCROLLBAR STYLING
+   ============================================= */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-visible) var(--bg-tertiary);
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--border-visible), var(--border));
+  border-radius: 4px;
+  border: 2px solid var(--bg-tertiary);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #4a4d55, var(--border-visible));
+}
+
+/* =============================================
+   TERRAIN PANEL OVERRIDES
+   ============================================= */
+.terrain-panel {
+  background: linear-gradient(180deg, var(--bg-secondary), #15171d);
+  border: 1px solid var(--border);
+  border-radius: var(--curve-md);
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  transition: all var(--tempo-normal);
+  margin-bottom: var(--gap-md);
+}
+
+.terrain-panel.collapsed {
+  box-shadow: none;
+}
+
+.terrain-panel.collapsed .terrain-panel-body {
+  display: none;
+}
+
+.terrain-panel-header {
+  background: linear-gradient(180deg, #1e2028, #1a1c24);
+  padding: 12px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.terrain-panel-header:hover {
+  background: linear-gradient(180deg, #252830, #1e2028);
+}
+
+/* Collapse arrow */
+.terrain-panel-header::before {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--text-tertiary);
+  margin-right: 8px;
+  transition: transform var(--tempo-normal);
+}
+
+.terrain-panel.collapsed .terrain-panel-header::before {
+  transform: rotate(-90deg);
+}
+
+.terrain-panel.collapsed .terrain-panel-header {
+  border-bottom-color: transparent;
+}
+
+.terrain-panel-body {
+  padding: 16px;
+}
+
+/* =============================================
+   BUTTON STYLES
+   ============================================= */
+.btn, .terrain-btn {
+  background: transparent;
+  border: 1px solid var(--border-visible);
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  border-radius: var(--curve-sm);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--tempo-normal);
+}
+
+.btn:hover, .terrain-btn:hover {
+  border-color: #5a5d65;
+  color: var(--text-title);
+  background: var(--bg-hover);
+}
+
+.btn.active, .terrain-btn.active {
+  background: rgba(74,170,136,0.15);
+  border-color: var(--accent-primary);
+  color: var(--accent-secondary);
+  box-shadow: 0 0 20px rgba(74,170,136,0.15);
+}
+
+.btn-sm {
+  padding: 3px 10px;
+  font-size: 10px;
+}
+
+.btn.recording {
+  background: rgba(200,60,60,0.2);
+  border-color: #a44;
+  color: var(--error);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.btn-ghost {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: color var(--tempo-normal);
+}
+
+.btn-ghost:hover {
+  color: var(--text-secondary);
+}
+
+/* =============================================
+   SELECT STYLES
+   ============================================= */
+select {
+  background: #1a1c22;
+  border: 1px solid var(--border-visible);
+  color: #aaa;
+  padding: 6px 28px 6px 12px;
+  border-radius: var(--curve-sm);
+  font-size: 12px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Cpath fill='%23888' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+select:hover {
+  border-color: #5a5d65;
+  color: var(--text-title);
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(74,170,136,0.2);
+}
+
+/* =============================================
+   INPUT STYLES
+   ============================================= */
+input[type="range"] {
+  height: 4px;
+  accent-color: var(--accent-primary);
+}
+
+input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent-primary);
+}
+
+/* =============================================
+   STATUS INDICATOR
+   ============================================= */
+.status {
+  font-size: 12px;
+  color: #666;
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--curve-lg);
+}
+
+.status.connected {
+  color: var(--success);
+  border-color: rgba(74,170,136,0.3);
+  background: rgba(74,170,136,0.1);
+}
+
+/* =============================================
+   FAB OVERRIDES
+   ============================================= */
+.fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--bg-secondary), #15171d);
+  border: 1px solid var(--border-visible);
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  transition: all var(--tempo-normal);
+  z-index: 1000;
+}
+
+.fab:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-secondary);
+  transform: scale(1.05);
+}
+
+.fab:active {
+  transform: scale(0.95);
+}
+
+/* =============================================
+   HEADER STYLES
+   ============================================= */
+.terrain-header,
+.controldeck-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--gap-xl);
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: var(--gap-lg);
+  border-bottom: 1px solid var(--border);
+}
+
+.terrain-header h1,
+.controldeck-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #fff, var(--text-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+.header-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* =============================================
+   LAYOUT GRID
+   ============================================= */
+.terrain-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: var(--gap-lg);
+}
+
+@media (max-width: 900px) {
+  .terrain-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.terrain-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+}
+
+.terrain-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+}
+
+/* =============================================
+   POPUP/MODAL STYLES
+   ============================================= */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.6);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.popup-overlay.visible {
+  display: flex;
+}
+
+.popup {
+  background: linear-gradient(180deg, #1e2028, var(--bg-secondary));
+  border: 1px solid var(--border-visible);
+  border-radius: 12px;
+  padding: 20px 24px;
+  max-width: 520px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+}
+
+.popup h3 {
+  font-size: 14px;
+  color: var(--text-title);
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.popup-close {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.popup-close:hover {
+  color: #aaa;
+}
+
+.popup p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.popup code {
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-code);
+  color: var(--accent-secondary);
+  font-size: 11px;
+}
+
+.popup ul {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 12px 0;
+  padding-left: 20px;
+}
+
+.popup li {
+  margin-bottom: 6px;
+}
+
+.popup .term {
+  color: #6af;
+  font-weight: 600;
+}

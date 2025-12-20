@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ControlDeck</title>
+
+    <!-- Terrain CSS -->
+    <link rel="stylesheet" href="terrain/css/core.css">
+    <link rel="stylesheet" href="terrain/css/tokens.css">
+    <link rel="stylesheet" href="terrain/css/components/panels.css">
+
+    <!-- ControlDeck Skin -->
+    <link rel="stylesheet" href="css/controldeck-skin.css">
+    <link rel="stylesheet" href="src/components.css">
+</head>
+<body>
+    <div class="container" style="max-width: 1200px; margin: 0 auto;">
+        <!-- Header -->
+        <div class="controldeck-header">
+            <h1>&#8984; ControlDeck <button id="btn-help" class="btn-ghost" title="How to integrate">?</button></h1>
+            <div class="header-controls">
+                <select id="profile-select"></select>
+                <button id="btn-send" class="btn">&#128225; Send</button>
+                <button id="btn-receive" class="btn">&#128229; Receive</button>
+                <button id="btn-midi" class="btn">&#127929; MIDI</button>
+                <button id="btn-record" class="btn">&#9210; Record</button>
+            </div>
+            <div id="status" class="status">Waiting for controller...</div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="terrain-grid">
+            <!-- Main Column -->
+            <div class="terrain-main" id="region-main">
+                <!-- Controller Panel -->
+                <div class="terrain-panel" data-panel="controller">
+                    <div class="terrain-panel-header">
+                        <span class="terrain-panel-title">Controller</span>
+                    </div>
+                    <div class="terrain-panel-body">
+                        <div id="diagram" class="diagram"></div>
+                    </div>
+                </div>
+
+                <!-- Latency Panel -->
+                <div class="terrain-panel" data-panel="latency">
+                    <div class="terrain-panel-header">
+                        <span class="terrain-panel-title">Latency</span>
+                        <span style="display:flex;gap:6px;align-items:center;">
+                            <button id="btn-latency-info" class="btn-ghost" title="Latency info">?</button>
+                            <button id="btn-latency-reset" class="btn btn-sm">Reset</button>
+                        </span>
+                    </div>
+                    <div class="terrain-panel-body">
+                        <div class="latency-grid">
+                            <div class="latency-stat">
+                                <div class="latency-stat-label">Poll Rate</div>
+                                <div class="latency-stat-value">
+                                    <span id="poll-rate" data-terrain-bind="controldeck.latency.pollRate">--</span>
+                                    <span class="latency-stat-unit"> Hz</span>
+                                </div>
+                            </div>
+                            <div class="latency-stat">
+                                <div class="latency-stat-label">Input Age</div>
+                                <div class="latency-stat-value">
+                                    <span id="input-age" data-terrain-bind="controldeck.latency.inputAge">--</span>
+                                    <span class="latency-stat-unit"> ms</span>
+                                </div>
+                            </div>
+                            <div class="latency-stat">
+                                <div class="latency-stat-label">Jitter</div>
+                                <div class="latency-stat-value">
+                                    <span id="jitter" data-terrain-bind="controldeck.latency.jitter">--</span>
+                                    <span class="latency-stat-unit"> ms</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sparkline">
+                            <svg viewBox="0 0 300 32" preserveAspectRatio="none">
+                                <defs>
+                                    <linearGradient id="sparkFill" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" stop-color="rgba(74,170,136,0.3)"/>
+                                        <stop offset="100%" stop-color="rgba(74,170,136,0)"/>
+                                    </linearGradient>
+                                </defs>
+                                <polygon id="spark-area" class="sparkline-area" points=""/>
+                                <polyline id="spark-line" class="sparkline-line" points=""/>
+                            </svg>
+                        </div>
+                        <div class="percentiles">
+                            p50: <span id="p50" data-terrain-bind="controldeck.latency.p50">--</span>ms
+                            p95: <span id="p95" data-terrain-bind="controldeck.latency.p95">--</span>ms
+                            p99: <span id="p99" data-terrain-bind="controldeck.latency.p99">--</span>ms
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="terrain-sidebar" id="region-sidebar">
+                <!-- Log Panel -->
+                <div class="terrain-panel" data-panel="log">
+                    <div class="terrain-panel-header">
+                        <span class="terrain-panel-title">Log</span>
+                        <span class="log-options">
+                            <label><input type="checkbox" id="opt-delta" checked> dt</label>
+                            <label><input type="checkbox" id="opt-stddev"> stddev</label>
+                            <label><input type="checkbox" id="opt-bpm"> BPM</label>
+                            <button id="btn-log-clear" class="btn btn-sm">Clear</button>
+                        </span>
+                    </div>
+                    <div class="terrain-panel-body">
+                        <div id="log" class="log"></div>
+                    </div>
+                </div>
+
+                <!-- Raw Panel -->
+                <div class="terrain-panel" data-panel="raw">
+                    <div class="terrain-panel-header">
+                        <span class="terrain-panel-title">Raw</span>
+                        <button id="btn-copy" class="btn btn-sm">Copy</button>
+                    </div>
+                    <div class="terrain-panel-body">
+                        <div id="raw" class="raw"></div>
+                    </div>
+                </div>
+
+                <!-- Pong AI Panel -->
+                <div class="terrain-panel" data-panel="pong-ai">
+                    <div class="terrain-panel-header">
+                        <span class="terrain-panel-title">Pong AI</span>
+                        <span style="display:flex;gap:4px;">
+                            <button id="btn-ai-toggle" class="btn btn-sm">Start AI</button>
+                            <button id="btn-game-start" class="btn btn-sm">Play</button>
+                        </span>
+                    </div>
+                    <div class="terrain-panel-body">
+                        <div class="ai-controls">
+                            <div class="ai-status" id="ai-status">AI Stopped</div>
+                            <div class="ai-row">
+                                <label><input type="checkbox" id="ai-p1" checked> P1 (Left)</label>
+                                <input type="range" id="ai-p1-skill" min="0" max="100" value="80">
+                                <span id="ai-p1-skill-val">80%</span>
+                            </div>
+                            <div class="ai-row">
+                                <label><input type="checkbox" id="ai-p2" checked> P2 (Right)</label>
+                                <input type="range" id="ai-p2-skill" min="0" max="100" value="80">
+                                <span id="ai-p2-skill-val">80%</span>
+                            </div>
+                            <div class="ai-row">
+                                <label>Noise:</label>
+                                <input type="range" id="ai-noise" min="0" max="50" value="10">
+                                <span id="ai-noise-val">10%</span>
+                            </div>
+                            <div class="ai-state" id="ai-state">Ball: -- | P1: -- | P2: --</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PaddleVision Panel -->
+                <div class="terrain-panel" data-panel="paddlevision">
+                    <div class="terrain-panel-header">
+                        <span class="terrain-panel-title">PaddleVision</span>
+                        <span style="display:flex;gap:4px;">
+                            <button id="btn-pv-pop" class="btn btn-sm" title="Open in new window">&#8599;</button>
+                            <button id="btn-pv-connect" class="btn btn-sm">Connect</button>
+                        </span>
+                    </div>
+                    <div class="terrain-panel-body">
+                        <div class="pv-status" id="pv-status">Not connected</div>
+                        <div class="pv-values">
+                            <div class="pv-value"><span class="pv-label">Rotation</span><span id="pv-rotation" class="pv-num">--</span></div>
+                            <div class="pv-value"><span class="pv-label">X</span><span id="pv-x" class="pv-num">--</span></div>
+                            <div class="pv-value"><span class="pv-label">Y</span><span id="pv-y" class="pv-num">--</span></div>
+                            <div class="pv-value"><span class="pv-label">Z</span><span id="pv-z" class="pv-num">--</span></div>
+                        </div>
+                        <div class="pv-iframe-container">
+                            <iframe id="pv-iframe" src="paddlevision/index.html" allow="camera; midi"></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Latency Info Popup -->
+    <div id="latency-popup" class="popup-overlay">
+        <div class="popup">
+            <h3>Latency Metrics <button class="popup-close">&times;</button></h3>
+            <p>These metrics help you understand the timing characteristics of your input devices.</p>
+            <ul>
+                <li><span class="term">Poll Rate</span> - How often the browser samples gamepad state</li>
+                <li><span class="term">Input Age</span> - Time since the gamepad hardware last updated</li>
+                <li><span class="term">Jitter</span> - Standard deviation of input age</li>
+            </ul>
+            <p><strong>Percentiles:</strong> p50 is median, p95/p99 show worst-case spikes.</p>
+        </div>
+    </div>
+
+    <!-- Help Popup -->
+    <div id="help-popup" class="popup-overlay">
+        <div class="popup" style="max-width:620px;">
+            <h3>Integrating ControlDeck <button class="popup-close">&times;</button></h3>
+            <p><strong>ControlDeck</strong> sends virtual gamepad input via <code>BroadcastChannel</code>.</p>
+            <p style="color:#6af;"><strong>Quick Start:</strong></p>
+            <ol style="font-size:12px;color:#888;margin:12px 0;padding-left:20px;">
+                <li>Open ControlDeck and your target app in separate tabs</li>
+                <li>Click <span class="term">Send</span> to broadcast input</li>
+                <li>Add the polyfill to your target app</li>
+            </ol>
+            <pre style="background:#12141a;padding:12px;border-radius:6px;font-size:11px;color:#6fc;"><code>&lt;script src="controldeck-polyfill.js"&gt;&lt;/script&gt;</code></pre>
+        </div>
+    </div>
+
+    <!-- Terrain Core -->
+    <script src="terrain/js/core/config.js"></script>
+    <script src="terrain/js/core/events.js"></script>
+    <script src="terrain/js/core/state.js"></script>
+
+    <!-- ControlDeck Core -->
+    <script src="src/core/protocol.js"></script>
+    <script src="src/core/profiles.js"></script>
+    <script src="src/core/latency.js"></script>
+
+    <!-- ControlDeck Adapters -->
+    <script src="src/adapters/gamepad.js"></script>
+    <script src="src/adapters/midi.js"></script>
+    <script src="src/adapters/relay.js"></script>
+    <script src="src/adapters/recorder.js"></script>
+
+    <!-- ControlDeck AI -->
+    <script src="src/ai/controller.js"></script>
+    <script src="src/ai/configs.js"></script>
+
+    <!-- ControlDeck Engine -->
+    <script src="src/core/engine.js"></script>
+
+    <!-- ControlDeck Panels -->
+    <script src="src/panels/controller.js"></script>
+    <script src="src/panels/latency.js"></script>
+    <script src="src/panels/log.js"></script>
+
+    <!-- ControlDeck Entry -->
+    <script src="src/index.js"></script>
+
+    <!-- App Initialization -->
+    <script>
+    (function() {
+        'use strict';
+
+        const Events = Terrain.Events;
+        const State = Terrain.State;
+        const CD = ControlDeck;
+
+        // State namespace for ControlDeck
+        State.set('controldeck', {
+            latency: { pollRate: '--', inputAge: '--', jitter: '--', p50: '--', p95: '--', p99: '--' }
+        });
+
+        let deck, pongAI, pongRelay, midiEnabled = false, recording = false;
+
+        // =========================================================
+        // INITIALIZATION
+        // =========================================================
+        function init() {
+            // Populate profile selector
+            const profileSelect = document.getElementById('profile-select');
+            Object.entries(CD.PROFILES).forEach(([k, v]) => {
+                const opt = document.createElement('option');
+                opt.value = k;
+                opt.textContent = v.name;
+                profileSelect.appendChild(opt);
+            });
+
+            // Initialize engine
+            deck = CD.init({ profile: 'auto', channel: 'default' });
+
+            // Setup panels
+            CD.Panels.Controller.setup('diagram');
+            CD.Panels.Controller.setupClickSimulation(deck);
+            CD.Panels.Log.setup();
+
+            // Setup event listeners
+            setupEngineEvents();
+            setupUIEvents();
+            setupPongAI();
+            setupPaddleVision();
+            setupCollapsiblePanels();
+
+            CD.Panels.Log.log('ControlDeck ready (modular)', 'info');
+        }
+
+        // =========================================================
+        // ENGINE EVENTS (via Terrain.Events)
+        // =========================================================
+        function setupEngineEvents() {
+            // Gamepad connected
+            Events.on(CD.GamepadAdapter.EVENTS.CONNECTED, (e) => {
+                document.getElementById('status').textContent = `Connected: ${e.gamepad.id.substring(0, 35)}...`;
+                document.getElementById('status').classList.add('connected');
+                document.getElementById('profile-select').value = e.profile.id;
+            });
+
+            // Unified input -> update latency display
+            Events.on(CD.Engine.EVENTS.INPUT, (e) => {
+                updateLatencyDisplay();
+                updateRawDisplay();
+            });
+
+            // Log entries
+            Events.on('controldeck:log:entry', (entry) => {
+                const logEl = document.getElementById('log');
+                logEl.innerHTML += CD.Panels.Log.formatEntry(entry);
+                logEl.scrollTop = logEl.scrollHeight;
+            });
+
+            Events.on('controldeck:log:clear', () => {
+                document.getElementById('log').innerHTML = '';
+            });
+        }
+
+        // =========================================================
+        // UI EVENTS
+        // =========================================================
+        function setupUIEvents() {
+            // Profile change
+            document.getElementById('profile-select').addEventListener('change', (e) => {
+                deck.gamepad.setProfile(e.target.value);
+            });
+
+            // Send button
+            document.getElementById('btn-send').addEventListener('click', function() {
+                this.classList.toggle('active');
+                deck.setRelayMode(this.classList.contains('active') ? 'sender' : null);
+                CD.Panels.Log.log(this.classList.contains('active') ? 'Sender ON' : 'Sender OFF', 'info');
+            });
+
+            // Receive button
+            document.getElementById('btn-receive').addEventListener('click', function() {
+                this.classList.toggle('active');
+                deck.setRelayMode(this.classList.contains('active') ? 'receiver' : null);
+                CD.Panels.Log.log(this.classList.contains('active') ? 'Receiver ON' : 'Receiver OFF', 'info');
+            });
+
+            // MIDI button
+            document.getElementById('btn-midi').addEventListener('click', async function() {
+                if (!midiEnabled) {
+                    const ok = await deck.midi.init();
+                    if (ok) {
+                        midiEnabled = true;
+                        this.classList.add('active');
+                        CD.Panels.Log.log('MIDI enabled', 'info');
+                    } else {
+                        CD.Panels.Log.log('MIDI failed', 'info');
+                    }
+                } else {
+                    midiEnabled = false;
+                    this.classList.remove('active');
+                    CD.Panels.Log.log('MIDI disabled', 'info');
+                }
+            });
+
+            // Record button
+            document.getElementById('btn-record').addEventListener('click', function() {
+                if (!recording) {
+                    deck.startRecording();
+                    recording = true;
+                    this.classList.add('recording');
+                    this.textContent = '⏹ Stop';
+                    CD.Panels.Log.log('Recording started', 'info');
+                } else {
+                    const data = deck.stopRecording();
+                    recording = false;
+                    this.classList.remove('recording');
+                    this.textContent = '⏺ Record';
+                    CD.Panels.Log.log(`Recorded ${data.length} events`, 'info');
+                    navigator.clipboard.writeText(deck.exportRecording());
+                    CD.Panels.Log.log('Copied to clipboard', 'info');
+                }
+            });
+
+            // Log options
+            document.getElementById('opt-delta').addEventListener('change', (e) => CD.Panels.Log.setOption('delta', e.target.checked));
+            document.getElementById('opt-stddev').addEventListener('change', (e) => CD.Panels.Log.setOption('stddev', e.target.checked));
+            document.getElementById('opt-bpm').addEventListener('change', (e) => CD.Panels.Log.setOption('bpm', e.target.checked));
+            document.getElementById('btn-log-clear').addEventListener('click', () => CD.Panels.Log.clear());
+
+            // Latency reset
+            document.getElementById('btn-latency-reset').addEventListener('click', () => {
+                deck.gamepad.latency.reset();
+                CD.Panels.Log.timingTracker.reset();
+                CD.Panels.Log.log('Latency reset', 'info');
+            });
+
+            // Copy raw state
+            document.getElementById('btn-copy').addEventListener('click', () => {
+                const state = deck.getState();
+                if (state) {
+                    navigator.clipboard.writeText(JSON.stringify(state, null, 2));
+                    CD.Panels.Log.log('State copied', 'info');
+                }
+            });
+
+            // Popups
+            document.getElementById('btn-latency-info').addEventListener('click', () => {
+                document.getElementById('latency-popup').classList.add('visible');
+            });
+            document.getElementById('btn-help').addEventListener('click', () => {
+                document.getElementById('help-popup').classList.add('visible');
+            });
+            document.querySelectorAll('.popup-overlay').forEach(popup => {
+                popup.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('popup-overlay') || e.target.classList.contains('popup-close')) {
+                        popup.classList.remove('visible');
+                    }
+                });
+            });
+        }
+
+        // =========================================================
+        // LATENCY DISPLAY
+        // =========================================================
+        function updateLatencyDisplay() {
+            const stats = deck.getLatency();
+
+            document.getElementById('poll-rate').textContent = stats.pollRate.toFixed(1);
+            document.getElementById('input-age').textContent = stats.inputAge.avg.toFixed(1);
+            document.getElementById('jitter').textContent = stats.inputAge.jitter.toFixed(1);
+            document.getElementById('p50').textContent = stats.inputAge.p50.toFixed(1);
+            document.getElementById('p95').textContent = stats.inputAge.p95.toFixed(1);
+            document.getElementById('p99').textContent = stats.inputAge.p99.toFixed(1);
+
+            // Sparkline
+            if (stats.sparklineData.length > 1) {
+                const max = Math.max(20, ...stats.sparklineData);
+                const pts = stats.sparklineData.map((v, i) =>
+                    `${(i / (stats.sparklineData.length - 1)) * 300},${32 - (v / max) * 32}`
+                ).join(' ');
+                document.getElementById('spark-line').setAttribute('points', pts);
+                document.getElementById('spark-area').setAttribute('points', `0,32 ${pts} 300,32`);
+            }
+        }
+
+        // =========================================================
+        // RAW DISPLAY
+        // =========================================================
+        function updateRawDisplay() {
+            const state = deck.getState();
+            if (!state) return;
+
+            let html = '<div class="raw-row"><span class="raw-label">Btns:</span></div>';
+            state.buttons.forEach((b, i) => {
+                html += `<div class="raw-row"><span class="raw-label">[${i}]</span><span class="raw-value${b.pressed ? ' active' : ''}">${b.value.toFixed(2)}</span></div>`;
+            });
+            html += '<div class="raw-row" style="margin-top:6px"><span class="raw-label">Axes:</span></div>';
+            state.axes.forEach((v, i) => {
+                html += `<div class="raw-row"><span class="raw-label">[${i}]</span><span class="raw-value${Math.abs(v) > 0.1 ? ' active' : ''}">${v.toFixed(3)}</span></div>`;
+            });
+            document.getElementById('raw').innerHTML = html;
+        }
+
+        // =========================================================
+        // PONG AI
+        // =========================================================
+        function setupPongAI() {
+            pongAI = new CD.AIController({ tickRate: 60 });
+            pongAI.loadConfig(CD.GAME_CONFIGS.pong);
+            pongRelay = new CD.Relay('pong', null, null);
+
+            // Listen for game state
+            const stateChannel = new BroadcastChannel('controldeck-pong-state');
+            stateChannel.onmessage = (e) => {
+                if (e.data.type === 'gamestate') {
+                    pongAI.updateState(e.data);
+                    const s = e.data;
+                    document.getElementById('ai-state').textContent =
+                        `Ball: ${Math.round(s.ballX)},${Math.round(s.ballY)} ${s.ballVx > 0 ? '→' : '←'} | P1: ${Math.round(s.p1Y)} | P2: ${Math.round(s.p2Y)}`;
+                }
+            };
+
+            // AI output -> relay
+            Events.on(CD.AIController.EVENTS.OUTPUT, (outputs) => {
+                if (outputs.axes) {
+                    if (outputs.axes[1] !== 0) {
+                        pongRelay.send(CD.PROTOCOL.createEvent('gamepad', 'AI', 'continuous', 'left-y',
+                            (outputs.axes[1] + 1) / 2, { index: 1, value: outputs.axes[1] }, { channel: 0 }));
+                    }
+                    if (outputs.axes[3] !== 0) {
+                        pongRelay.send(CD.PROTOCOL.createEvent('gamepad', 'AI', 'continuous', 'right-y',
+                            (outputs.axes[3] + 1) / 2, { index: 3, value: outputs.axes[3] }, { channel: 0 }));
+                    }
+                }
+            });
+
+            // UI
+            document.getElementById('btn-ai-toggle').addEventListener('click', function() {
+                if (pongAI.running) {
+                    pongAI.stop();
+                    pongRelay.destroy();
+                    pongRelay = new CD.Relay('pong', null, null);
+                    this.textContent = 'Start AI';
+                    document.getElementById('ai-status').textContent = 'AI Stopped';
+                    document.getElementById('ai-status').classList.remove('running');
+                } else {
+                    pongRelay.destroy();
+                    pongRelay = new CD.Relay('pong', 'sender', null);
+                    pongAI.start();
+                    this.textContent = 'Stop AI';
+                    document.getElementById('ai-status').textContent = 'Running on channel: pong';
+                    document.getElementById('ai-status').classList.add('running');
+                }
+            });
+
+            document.getElementById('btn-game-start').addEventListener('click', () => {
+                const wasInactive = pongRelay.mode === null;
+                if (wasInactive) {
+                    pongRelay.destroy();
+                    pongRelay = new CD.Relay('pong', 'sender', null);
+                }
+                pongRelay.send(CD.PROTOCOL.createEvent('gamepad', 'UI', 'trigger', 'start', 1, {}, { pressed: true }));
+                setTimeout(() => {
+                    pongRelay.send(CD.PROTOCOL.createEvent('gamepad', 'UI', 'trigger', 'start', 0, {}, { pressed: false }));
+                    if (wasInactive) {
+                        pongRelay.destroy();
+                        pongRelay = new CD.Relay('pong', null, null);
+                    }
+                }, 100);
+            });
+
+            // Sliders
+            document.getElementById('ai-p1').addEventListener('change', (e) => pongAI.setParam('p1Enabled', e.target.checked));
+            document.getElementById('ai-p2').addEventListener('change', (e) => pongAI.setParam('p2Enabled', e.target.checked));
+            document.getElementById('ai-p1-skill').addEventListener('input', (e) => {
+                pongAI.setParam('p1Skill', e.target.value / 100);
+                document.getElementById('ai-p1-skill-val').textContent = e.target.value + '%';
+            });
+            document.getElementById('ai-p2-skill').addEventListener('input', (e) => {
+                pongAI.setParam('p2Skill', e.target.value / 100);
+                document.getElementById('ai-p2-skill-val').textContent = e.target.value + '%';
+            });
+            document.getElementById('ai-noise').addEventListener('input', (e) => {
+                pongAI.setParam('predictionNoise', e.target.value / 100);
+                document.getElementById('ai-noise-val').textContent = e.target.value + '%';
+            });
+        }
+
+        // =========================================================
+        // PADDLEVISION
+        // =========================================================
+        let pvConnected = false, pvPollInterval = null;
+
+        function setupPaddleVision() {
+            document.getElementById('btn-pv-pop').addEventListener('click', () => {
+                window.open('paddlevision/index.html', 'PaddleVision', 'width=800,height=900');
+            });
+
+            document.getElementById('btn-pv-connect').addEventListener('click', function() {
+                if (pvConnected) {
+                    disconnectPaddleVision();
+                    this.textContent = 'Connect';
+                } else {
+                    connectPaddleVision();
+                    this.textContent = 'Disconnect';
+                }
+            });
+        }
+
+        function connectPaddleVision() {
+            const iframe = document.getElementById('pv-iframe');
+            const statusEl = document.getElementById('pv-status');
+            pvConnected = true;
+            statusEl.textContent = 'Connecting...';
+
+            pvPollInterval = setInterval(() => {
+                try {
+                    const pv = iframe.contentWindow?.PVision;
+                    if (pv) {
+                        const vals = pv.getMIDIValues();
+                        document.getElementById('pv-rotation').textContent = vals.rotation;
+                        document.getElementById('pv-x').textContent = vals.x;
+                        document.getElementById('pv-y').textContent = vals.y;
+                        document.getElementById('pv-z').textContent = vals.z;
+                        statusEl.textContent = pv.state.hand.detected
+                            ? (pv.isCalibrated() ? 'Calibrated' : 'Hand detected')
+                            : 'No hand';
+                        statusEl.classList.toggle('connected', pv.state.hand.detected);
+                    }
+                } catch (e) {
+                    statusEl.textContent = 'Cross-origin blocked';
+                    statusEl.classList.remove('connected');
+                }
+            }, 33);
+        }
+
+        function disconnectPaddleVision() {
+            if (pvPollInterval) clearInterval(pvPollInterval);
+            pvConnected = false;
+            document.getElementById('pv-status').textContent = 'Not connected';
+            document.getElementById('pv-status').classList.remove('connected');
+            ['pv-rotation', 'pv-x', 'pv-y', 'pv-z'].forEach(id => {
+                document.getElementById(id).textContent = '--';
+            });
+        }
+
+        // =========================================================
+        // COLLAPSIBLE PANELS
+        // =========================================================
+        function setupCollapsiblePanels() {
+            document.querySelectorAll('.terrain-panel[data-panel]').forEach(panel => {
+                const header = panel.querySelector('.terrain-panel-header');
+                header.addEventListener('dblclick', (e) => {
+                    if (e.target.closest('button, input, label')) return;
+                    panel.classList.toggle('collapsed');
+                    savePanelState();
+                });
+                header.addEventListener('mousedown', (e) => {
+                    if (e.detail > 1) e.preventDefault();
+                });
+            });
+            restorePanelState();
+        }
+
+        function savePanelState() {
+            const state = {};
+            document.querySelectorAll('.terrain-panel[data-panel]').forEach(p => {
+                state[p.dataset.panel] = p.classList.contains('collapsed');
+            });
+            localStorage.setItem('controldeck-panels', JSON.stringify(state));
+        }
+
+        function restorePanelState() {
+            try {
+                const state = JSON.parse(localStorage.getItem('controldeck-panels') || '{}');
+                Object.entries(state).forEach(([name, collapsed]) => {
+                    const panel = document.querySelector(`.terrain-panel[data-panel="${name}"]`);
+                    if (panel && collapsed) panel.classList.add('collapsed');
+                });
+            } catch (e) {}
+        }
+
+        // Initialize
+        init();
+    })();
+    </script>
+</body>
+</html>

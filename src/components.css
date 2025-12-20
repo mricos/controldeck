@@ -1,0 +1,75 @@
+/**
+ * ControlDeck Component Styles
+ * Panel-specific styles for the ControlDeck app
+ */
+
+/* Diagram */
+.diagram { position: relative; width: 100%; max-width: 480px; margin: 0 auto; }
+.diagram svg { width: 100%; height: auto; }
+.diagram .btn-pad { cursor: pointer; transition: all 0.1s; }
+.diagram .btn-pad:hover { filter: brightness(1.3); }
+.diagram .btn-pad.pressed { fill: #4a8; filter: drop-shadow(0 0 8px rgba(68,170,136,0.7)); }
+.diagram .led { transition: all 0.15s; }
+.diagram .led.on { fill: #4f8; filter: drop-shadow(0 0 6px rgba(68,255,136,0.8)); }
+.diagram .stick-pos { transition: transform 0.05s; }
+
+/* Latency Grid */
+.latency-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
+.latency-stat { background: linear-gradient(135deg, #14161c, #12141a); border: 1px solid #2a2d35; border-radius: 6px; padding: 10px 12px; }
+.latency-stat-label { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.latency-stat-value { font-size: 18px; font-weight: 600; font-family: 'SF Mono', monospace; color: #ccc; }
+.latency-stat-unit { font-size: 11px; color: #555; }
+
+/* Sparkline */
+.sparkline { height: 48px; background: linear-gradient(135deg, #14161c, #12141a); border: 1px solid #2a2d35; border-radius: 6px; padding: 8px; margin-bottom: 14px; }
+.sparkline svg { width: 100%; height: 100%; }
+.sparkline-line { fill: none; stroke: #4a8; stroke-width: 1.5; }
+.sparkline-area { fill: url(#sparkFill); }
+
+/* Percentiles */
+.percentiles { display: flex; gap: 20px; font-size: 11px; font-family: 'SF Mono', monospace; color: #555; background: #12141a; border: 1px solid #2a2d35; border-radius: 6px; padding: 8px 12px; }
+.percentiles span { color: #888; }
+
+/* Log */
+.log-options { display: flex; gap: 8px; align-items: center; }
+.log-options label { font-size: 10px; color: #555; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+.log-options input[type="checkbox"] { width: 12px; height: 12px; accent-color: #4a8; }
+.log { height: 200px; overflow-y: auto; font-family: 'SF Mono', monospace; font-size: 11px; background: #12141a; border-radius: 6px; padding: 10px; border: 1px solid #2a2d35; }
+.log-entry { padding: 3px 0; display: flex; gap: 8px; }
+.log-time { color: #444; }
+.log-entry.press .log-msg { color: #6fc; }
+.log-entry.release .log-msg { color: #666; }
+.log-entry.info .log-msg { color: #6af; }
+.log-entry.relay .log-msg { color: #c8f; }
+.log-entry.midi .log-msg { color: #fa6; }
+.log-delta { color: #777; font-size: 10px; }
+.log-stddev { color: #a6f; font-size: 10px; }
+.log-bpm { color: #f80; font-size: 10px; font-weight: 600; }
+
+/* Raw */
+.raw { font-family: 'SF Mono', monospace; font-size: 10px; background: #12141a; border-radius: 6px; padding: 10px; max-height: 150px; overflow-y: auto; color: #666; border: 1px solid #2a2d35; }
+.raw-row { display: flex; gap: 6px; margin-bottom: 3px; }
+.raw-label { color: #555; min-width: 45px; }
+.raw-value { color: #888; background: rgba(255,255,255,0.02); padding: 1px 5px; border-radius: 3px; min-width: 45px; text-align: right; }
+.raw-value.active { color: #6fc; background: rgba(74,170,136,0.15); }
+
+/* AI Controls */
+.ai-controls { font-size: 11px; }
+.ai-status { padding: 6px 10px; background: #12141a; border-radius: 4px; margin-bottom: 10px; color: #666; text-align: center; }
+.ai-status.running { color: #6fc; background: rgba(74,170,136,0.15); }
+.ai-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ai-row label { display: flex; align-items: center; gap: 4px; color: #888; min-width: 80px; }
+.ai-row input[type="checkbox"] { width: 14px; height: 14px; accent-color: #4a8; }
+.ai-row input[type="range"] { flex: 1; height: 4px; accent-color: #4a8; }
+.ai-row span { min-width: 35px; color: #6fc; font-family: 'SF Mono', monospace; font-size: 10px; }
+.ai-state { padding: 6px 10px; background: #12141a; border-radius: 4px; margin-top: 10px; color: #555; font-family: 'SF Mono', monospace; font-size: 10px; }
+
+/* PaddleVision */
+.pv-status { padding: 6px 10px; background: #12141a; border-radius: 4px; margin-bottom: 10px; color: #666; text-align: center; font-size: 11px; }
+.pv-status.connected { color: #fa6; background: rgba(255,170,0,0.15); }
+.pv-values { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+.pv-value { background: #12141a; border-radius: 4px; padding: 6px; text-align: center; }
+.pv-label { display: block; font-size: 9px; color: #555; text-transform: uppercase; margin-bottom: 2px; }
+.pv-num { display: block; font-size: 14px; font-weight: 600; color: #fa6; font-family: 'SF Mono', monospace; }
+.pv-iframe-container { background: #0a0a0a; border-radius: 6px; overflow: hidden; border: 1px solid #2a2d35; }
+.pv-iframe-container iframe { width: 100%; height: 320px; border: none; }

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>ControlDeck</title>
+
+    <!-- Terrain Platform -->
+    <link rel="stylesheet" href="terrain/css/core.css">
+    <link rel="stylesheet" href="terrain/css/tokens.css">
+    <link rel="stylesheet" href="terrain/dist/themes/controldeck.theme.css" id="terrain-theme">
+
+    <!-- App Styles -->
+    <link rel="stylesheet" href="css/controldeck-skin.css">
+
+    <style>
+        /* Generated layout from terrain.config.json */
+        :root {
+            --layout-columns: 1fr 320px;
+        }
+
+        .terrain-app {
+            display: grid;
+            grid-template-columns: var(--layout-columns);
+            grid-template-rows: auto 1fr;
+            grid-template-areas:
+                "header header"
+                "main sidebar";
+            min-height: 100vh;
+            background: var(--bg-primary);
+        }
+
+        .terrain-header {
+            grid-area: header;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .terrain-header-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .terrain-header-icon {
+            font-size: 20px;
+        }
+
+        .terrain-header-controls {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .terrain-main {
+            grid-area: main;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .terrain-sidebar {
+            grid-area: sidebar;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-primary);
+            overflow-y: auto;
+        }
+
+        .terrain-panel {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .terrain-panel-header {
+            padding: 10px 12px;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-primary);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .terrain-panel-content {
+            padding: 12px;
+        }
+
+        .terrain-btn {
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .terrain-btn:hover {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: var(--bg-primary);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.4s ease;
+        }
+
+        .loading-overlay.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-text {
+            font-size: 18pt;
+            font-weight: 700;
+            color: var(--accent-primary);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-text">LOADING</div>
+    </div>
+
+    <div class="terrain-app" id="terrain-app">
+        <!-- Header -->
+        <header class="terrain-header">
+            <div class="terrain-header-title">
+                <span class="terrain-header-icon">⌘</span>
+                <span>ControlDeck</span>
+            </div>
+            <div class="terrain-header-controls" id="header-controls">
+                <select class="terrain-btn" id="profile-select"><option>Select...</option></select>
+                <button class="terrain-btn" id="btn-send">📡 Send</button>
+                <button class="terrain-btn" id="btn-receive">📥 Receive</button>
+                <button class="terrain-btn" id="btn-midi">🎹 MIDI</button>
+                <button class="terrain-btn" id="btn-record">⏺ Record</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="terrain-main" id="terrain-main">
+            <div class="terrain-panel" id="panel-controller">
+                <div class="terrain-panel-header">Controller</div>
+                <div class="terrain-panel-content" id="controller-content">
+                    <!-- Panel: controller -->
+                </div>
+            </div>
+            <div class="terrain-panel" id="panel-latency">
+                <div class="terrain-panel-header">Latency</div>
+                <div class="terrain-panel-content" id="latency-content">
+                    <!-- Panel: latency -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Sidebar -->
+        <aside class="terrain-sidebar" id="terrain-sidebar">
+            <div class="terrain-panel" id="panel-log">
+                <div class="terrain-panel-header">Log</div>
+                <div class="terrain-panel-content" id="log-content">
+                    <!-- Panel: log -->
+                </div>
+            </div>
+            <div class="terrain-panel" id="panel-raw">
+                <div class="terrain-panel-header">Raw</div>
+                <div class="terrain-panel-content" id="raw-content">
+                    <!-- Panel: raw -->
+                </div>
+            </div>
+            <div class="terrain-panel" id="panel-pong-ai">
+                <div class="terrain-panel-header">Pong AI</div>
+                <div class="terrain-panel-content" id="pong-ai-content">
+                    <!-- Panel: pong-ai -->
+                </div>
+            </div>
+            <div class="terrain-panel" id="panel-paddlevision">
+                <div class="terrain-panel-header">PaddleVision</div>
+                <div class="terrain-panel-content" id="paddlevision-content">
+                    <!-- Panel: paddlevision -->
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Terrain Core -->
+    <script src="terrain/js/core/config.js"></script>
+    <script src="terrain/js/core/events.js"></script>
+    <script src="terrain/js/core/state.js"></script>
+    <script src="terrain/js/core/mode.js"></script>
+
+    <!-- App Config (inline) -->
+    <script>
+        window.TerrainAppConfig = {
+    "terrain": {
+        "name": "ControlDeck",
+        "version": "0.2.0",
+        "description": "Universal control input debugging, relay, and recording tool"
+    },
+    "mode": "control",
+    "theme": "controldeck",
+    "layout": {
+        "columns": "1fr 320px",
+        "mainMaxWidth": "720px",
+        "gap": "15px"
+    },
+    "header": {
+        "show": true,
+        "title": "ControlDeck",
+        "icon": "⌘",
+        "controls": [
+            { "id": "profile-select", "type": "select" },
+            { "id": "btn-send", "type": "button", "label": "Send", "icon": "📡" },
+            { "id": "btn-receive", "type": "button", "label": "Receive", "icon": "📥" },
+            { "id": "btn-midi", "type": "button", "label": "MIDI", "icon": "🎹" },
+            { "id": "btn-record", "type": "button", "label": "Record", "icon": "⏺" }
+        ],
+        "status": { "id": "connection-status" }
+    },
+    "panels": [
+        {
+            "id": "controller",
+            "title": "Controller",
+            "region": "main",
+            "template": "panel-controller"
+        },
+        {
+            "id": "latency",
+            "title": "Latency",
+            "region": "main",
+            "template": "panel-latency"
+        },
+        {
+            "id": "log",
+            "title": "Log",
+            "region": "sidebar",
+            "template": "panel-log"
+        },
+        {
+            "id": "raw",
+            "title": "Raw",
+            "region": "sidebar",
+            "template": "panel-raw"
+        },
+        {
+            "id": "pong-ai",
+            "title": "Pong AI",
+            "region": "sidebar",
+            "template": "panel-pong-ai"
+        },
+        {
+            "id": "paddlevision",
+            "title": "PaddleVision",
+            "region": "sidebar",
+            "type": "iframe",
+            "src": "paddlevision/index.html"
+        }
+    ],
+    "scripts": ["controldeck.js"],
+    "styles": ["css/controldeck-skin.css"]
+};
+    </script>
+
+    <!-- App Scripts -->
+    <script src="controldeck.js"></script>
+
+    <!-- Boot -->
+    <script>
+        (async function() {
+            // Initialize mode
+            await Terrain.Mode.init('terrain/dist/modes/control.mode.json', 'controldeck');
+            Terrain.Mode.apply();
+
+            // Hide loading overlay
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.classList.add('fade-out');
+                setTimeout(() => overlay.remove(), 400);
+            }
+
+            // Emit ready event
+            if (Terrain.Events) {
+                Terrain.Events.emit('TERRAIN_READY', {
+                    app: 'ControlDeck',
+                    mode: 'control',
+                    theme: 'controldeck'
+                });
+            }
+
+            console.log('[Terrain] Ready:', 'ControlDeck');
+        })();
+    </script>
+</body>
+</html>

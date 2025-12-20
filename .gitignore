@@ -1,0 +1,6 @@
+# Symlinks to external repos
+terrain
+paddlevision
+
+# Backup of old monolithic files
+tmp/

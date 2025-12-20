@@ -1,0 +1,84 @@
+# ControlDeck Terrain Configuration
+# Defines layout, panels, and features for the Terrain UI SDK
+
+[terrain]
+name = "ControlDeck"
+version = "0.2.0"
+description = "Universal control input debugging, relay, and recording tool"
+
+[canvas]
+mode = "fixed"
+drag = false
+pan = false
+grid = false
+
+[layout]
+type = "sidebar"
+main_max_width = "720px"
+sidebar_width = "320px"
+gap = "15px"
+
+[features]
+designMode = true
+toasts = true
+persistence = true
+fonts = false
+
+[header]
+title = "ControlDeck"
+show = true
+
+[sizing]
+narrow = "280px"
+medium = "320px"
+wide = "480px"
+
+# Main region panels
+[[panels]]
+id = "controller"
+title = "Controller"
+region = "main"
+type = "html"
+template = "panel-controller"
+expanded = true
+
+[[panels]]
+id = "latency"
+title = "Latency"
+region = "main"
+type = "html"
+template = "panel-latency"
+expanded = true
+
+# Sidebar panels
+[[panels]]
+id = "log"
+title = "Log"
+region = "sidebar"
+type = "html"
+template = "panel-log"
+expanded = true
+
+[[panels]]
+id = "raw"
+title = "Raw"
+region = "sidebar"
+type = "html"
+template = "panel-raw"
+expanded = true
+
+[[panels]]
+id = "pong-ai"
+title = "Pong AI"
+region = "sidebar"
+type = "html"
+template = "panel-pong-ai"
+expanded = true
+
+[[panels]]
+id = "paddlevision"
+title = "PaddleVision"
+region = "sidebar"
+type = "iframe"
+src = "paddlevision/index.html"
+expanded = true
