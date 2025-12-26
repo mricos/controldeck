@@ -1,6 +1,6 @@
-# Symlinks to external repos
-terrain
-paddlevision
+# Symlinks to external repos (root level only)
+/terrain
+/paddlevision
 
 # Backup of old monolithic files
 tmp/

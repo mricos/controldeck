@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PaddleVision Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+        #output {
+            background: #0f0f1a;
+            padding: 15px;
+            border-radius: 8px;
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .log { color: #888; }
+        .value { color: #4ecdc4; }
+        .control { color: #ff6b6b; }
+        button {
+            background: #4ecdc4;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: monospace;
+        }
+        button:hover { background: #45b7aa; }
+        #values {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .value-box {
+            background: #0f0f1a;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .value-box .label { color: #888; font-size: 12px; }
+        .value-box .num { font-size: 24px; color: #4ecdc4; }
+        .bar {
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%;
+            background: #4ecdc4;
+            transition: width 0.05s;
+        }
+    </style>
+</head>
+<body>
+    <h1>PaddleVision Mock Test</h1>
+
+    <div id="output"></div>
+
+    <div>
+        <button onclick="startTest()">Start Mock Source</button>
+        <button onclick="stopTest()">Stop</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <div id="values">
+        <div class="value-box">
+            <div class="label">hand-x</div>
+            <div class="num" id="val-x">0.000</div>
+            <div class="bar"><div class="bar-fill" id="bar-x"></div></div>
+        </div>
+        <div class="value-box">
+            <div class="label">hand-y</div>
+            <div class="num" id="val-y">0.000</div>
+            <div class="bar"><div class="bar-fill" id="bar-y"></div></div>
+        </div>
+        <div class="value-box">
+            <div class="label">hand-theta</div>
+            <div class="num" id="val-theta">0.000</div>
+            <div class="bar"><div class="bar-fill" id="bar-theta"></div></div>
+        </div>
+        <div class="value-box">
+            <div class="label">hand-spread</div>
+            <div class="num" id="val-spread">0.000</div>
+            <div class="bar"><div class="bar-fill" id="bar-spread"></div></div>
+        </div>
+    </div>
+
+    <!-- Load ControlDeck modules -->
+    <script src="src/core/protocol.js"></script>
+    <script src="src/core/profiles.js"></script>
+    <script src="src/core/latency.js"></script>
+
+    <!-- PaddleVision modular -->
+    <script src="src/adapters/paddlevision/derivers.js"></script>
+    <script src="src/adapters/paddlevision/processors/base.js"></script>
+    <script src="src/adapters/paddlevision/processors/extract.js"></script>
+    <script src="src/adapters/paddlevision/processors/calibrate.js"></script>
+    <script src="src/adapters/paddlevision/processors/smooth.js"></script>
+    <script src="src/adapters/paddlevision/processors/flick-detect.js"></script>
+    <script src="src/adapters/paddlevision/pipeline.js"></script>
+    <script src="src/adapters/paddlevision/sources/base.js"></script>
+    <script src="src/adapters/paddlevision/sources/asciivision.js"></script>
+    <script src="src/adapters/paddlevision/sources/mock.js"></script>
+    <script src="src/adapters/paddlevision/sinks/base.js"></script>
+    <script src="src/adapters/paddlevision/sinks/hub.js"></script>
+    <script src="src/adapters/paddlevision/sinks/events.js"></script>
+    <script src="src/adapters/paddlevision/sinks/console.js"></script>
+    <script src="src/adapters/paddlevision/builder.js"></script>
+    <script src="src/adapters/paddlevision/adapter.js"></script>
+    <script src="src/adapters/paddlevision/index.js"></script>
+
+    <script>
+        const output = document.getElementById('output');
+        let pv = null;
+        let logCount = 0;
+
+        function log(msg, cls = 'log') {
+            logCount++;
+            if (logCount > 100) {
+                output.innerHTML = '';
+                logCount = 1;
+            }
+            output.innerHTML += `<div class="${cls}">${msg}</div>`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearLog() {
+            output.innerHTML = '';
+            logCount = 0;
+        }
+
+        function updateValue(name, value) {
+            const el = document.getElementById('val-' + name);
+            const bar = document.getElementById('bar-' + name);
+            if (el) el.textContent = value.toFixed(3);
+            if (bar) bar.style.width = (value * 100) + '%';
+        }
+
+        // Custom sink to update UI
+        class UISink extends ControlDeck.PaddleVision.SinkAdapter {
+            async connect() {
+                this._connected = true;
+                return true;
+            }
+            disconnect() {
+                this._connected = false;
+            }
+            emit(control, value, topic, extra) {
+                // Update value displays
+                if (control === 'hand-x') updateValue('x', value);
+                if (control === 'hand-y') updateValue('y', value);
+                if (control === 'hand-theta') updateValue('theta', value);
+                if (control === 'hand-spread') updateValue('spread', value);
+            }
+        }
+
+        function startTest() {
+            if (pv && pv.isRunning()) {
+                log('Already running');
+                return;
+            }
+
+            log('Creating PaddleVision with mock source...', 'control');
+
+            try {
+                pv = ControlDeck.createPaddleVision()
+                    .fromSource('mock', { pattern: 'sine', frameRate: 30 })
+                    .withSink(new UISink())
+                    .toSink('console', { throttle: 500 })
+                    .build();
+
+                log('Built successfully', 'value');
+                log('Starting...', 'control');
+
+                pv.start();
+
+                log('Running! Watch the values update.', 'value');
+
+                // Log stats every 2 seconds
+                setInterval(() => {
+                    if (pv && pv.isRunning()) {
+                        const stats = pv.getStats();
+                        log(`Frames: ${stats.framesProcessed}, Detection: ${(stats.detectionRate * 100).toFixed(0)}%`);
+                    }
+                }, 2000);
+
+            } catch (e) {
+                log('Error: ' + e.message, 'control');
+                console.error(e);
+            }
+        }
+
+        function stopTest() {
+            if (pv) {
+                pv.stop();
+                log('Stopped', 'control');
+            }
+        }
+
+        // Log when ready
+        log('PaddleVision modules loaded', 'value');
+        log('Click "Start Mock Source" to begin test', 'log');
+    </script>
+</body>
+</html>

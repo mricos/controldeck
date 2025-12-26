@@ -20,6 +20,25 @@
  * <script src="src/adapters/relay.js"></script>
  * <script src="src/adapters/recorder.js"></script>
  *
+ * <!-- PaddleVision (modular hand tracking) -->
+ * <script src="src/adapters/paddlevision/derivers.js"></script>
+ * <script src="src/adapters/paddlevision/processors/base.js"></script>
+ * <script src="src/adapters/paddlevision/processors/extract.js"></script>
+ * <script src="src/adapters/paddlevision/processors/calibrate.js"></script>
+ * <script src="src/adapters/paddlevision/processors/smooth.js"></script>
+ * <script src="src/adapters/paddlevision/processors/flick-detect.js"></script>
+ * <script src="src/adapters/paddlevision/pipeline.js"></script>
+ * <script src="src/adapters/paddlevision/sources/base.js"></script>
+ * <script src="src/adapters/paddlevision/sources/asciivision.js"></script>
+ * <script src="src/adapters/paddlevision/sources/mock.js"></script>
+ * <script src="src/adapters/paddlevision/sinks/base.js"></script>
+ * <script src="src/adapters/paddlevision/sinks/hub.js"></script>
+ * <script src="src/adapters/paddlevision/sinks/events.js"></script>
+ * <script src="src/adapters/paddlevision/sinks/console.js"></script>
+ * <script src="src/adapters/paddlevision/builder.js"></script>
+ * <script src="src/adapters/paddlevision/adapter.js"></script>
+ * <script src="src/adapters/paddlevision/index.js"></script>
+ *
  * <!-- ControlDeck AI -->
  * <script src="src/ai/controller.js"></script>
  * <script src="src/ai/configs.js"></script>
@@ -48,6 +67,25 @@ window.ControlDeck.MODULES = [
     'src/adapters/midi.js',
     'src/adapters/relay.js',
     'src/adapters/recorder.js',
+
+    // PaddleVision modular adapter (load order matters)
+    'src/adapters/paddlevision/derivers.js',
+    'src/adapters/paddlevision/processors/base.js',
+    'src/adapters/paddlevision/processors/extract.js',
+    'src/adapters/paddlevision/processors/calibrate.js',
+    'src/adapters/paddlevision/processors/smooth.js',
+    'src/adapters/paddlevision/processors/flick-detect.js',
+    'src/adapters/paddlevision/pipeline.js',
+    'src/adapters/paddlevision/sources/base.js',
+    'src/adapters/paddlevision/sources/asciivision.js',
+    'src/adapters/paddlevision/sources/mock.js',
+    'src/adapters/paddlevision/sinks/base.js',
+    'src/adapters/paddlevision/sinks/hub.js',
+    'src/adapters/paddlevision/sinks/events.js',
+    'src/adapters/paddlevision/sinks/console.js',
+    'src/adapters/paddlevision/builder.js',
+    'src/adapters/paddlevision/adapter.js',
+    'src/adapters/paddlevision/index.js',
 
     // AI (depends on core)
     'src/ai/controller.js',

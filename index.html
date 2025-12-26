@@ -18,35 +18,149 @@
     <div class="container" style="max-width: 1200px; margin: 0 auto;">
         <!-- Header -->
         <div class="controldeck-header">
-            <h1>&#8984; ControlDeck <button id="btn-help" class="btn-ghost" title="How to integrate">?</button></h1>
+            <h1><span class="logo-icon">&#x2318;</span> ControlDeck <button id="btn-help" class="btn-ghost" title="Help &amp; Documentation">?</button></h1>
             <div class="header-controls">
-                <select id="profile-select"></select>
-                <button id="btn-send" class="btn">&#128225; Send</button>
-                <button id="btn-receive" class="btn">&#128229; Receive</button>
-                <button id="btn-midi" class="btn">&#127929; MIDI</button>
-                <button id="btn-record" class="btn">&#9210; Record</button>
+                <div class="header-buttons">
+                    <button id="btn-send" class="btn"><span class="btn-icon">&#x21E7;</span> Send</button>
+                    <button id="btn-receive" class="btn"><span class="btn-icon">&#x21E9;</span> Recv</button>
+                    <button id="btn-midi" class="btn"><span class="btn-icon">&#x266B;</span> MIDI</button>
+                    <button id="btn-record" class="btn"><span class="btn-icon">&#x25CF;</span> Rec</button>
+                </div>
+                <div class="preset-controls">
+                    <button id="preset-minimal" class="btn btn-sm" title="Minimal layout">Min</button>
+                    <button id="preset-full" class="btn btn-sm" title="Full layout">Full</button>
+                    <button id="preset-dev" class="btn btn-sm" title="Developer layout">Dev</button>
+                </div>
             </div>
             <div id="status" class="status">Waiting for controller...</div>
         </div>
 
-        <!-- Main Grid -->
+        <!-- Main Grid (v2: Top/Bottom layout) -->
         <div class="terrain-grid">
-            <!-- Main Column -->
-            <div class="terrain-main" id="region-main">
-                <!-- Controller Panel -->
-                <div class="terrain-panel" data-panel="controller">
+            <!-- Top Region: Controller + AI panels -->
+            <div class="terrain-top" id="region-top">
+                <!-- Gamepad Panel -->
+                <div class="terrain-panel collapsed" data-panel="gamepad" data-category="controller">
                     <div class="terrain-panel-header">
-                        <span class="terrain-panel-title">Controller</span>
+                        <span class="terrain-panel-title">Gamepad</span>
+                        <span class="panel-mini-status" id="controller-status"></span>
+                        <button class="btn-fullscreen" title="Toggle fullscreen">&#x26F6;</button>
                     </div>
                     <div class="terrain-panel-body">
+                        <div class="gamepad-profile-row">
+                            <label style="font-size:10px;color:#888;">Profile:</label>
+                            <select id="profile-select"></select>
+                        </div>
                         <div id="diagram" class="diagram"></div>
                     </div>
                 </div>
 
-                <!-- Latency Panel -->
-                <div class="terrain-panel" data-panel="latency">
+                <!-- PaddleVision Panel -->
+                <div class="terrain-panel collapsed" data-panel="paddlevision" data-category="controller">
                     <div class="terrain-panel-header">
-                        <span class="terrain-panel-title">Latency</span>
+                        <span class="terrain-panel-title">PaddleVision</span>
+                        <span class="panel-mini-status" id="pv-mini-status"></span>
+                        <span style="display:flex;gap:4px;">
+                            <button id="btn-pv-pop" class="btn btn-sm" title="Open in new window">&#8599;</button>
+                            <button id="btn-pv-connect" class="btn btn-sm">Connect</button>
+                            <button class="btn-fullscreen" title="Toggle fullscreen">&#x26F6;</button>
+                        </span>
+                    </div>
+                    <div class="terrain-panel-body">
+                        <div class="pv-status" id="pv-status">Not connected</div>
+                        <div class="pv-values">
+                            <div class="pv-value"><span class="pv-label">Rotation</span><span id="pv-rotation" class="pv-num">--</span></div>
+                            <div class="pv-value"><span class="pv-label">X</span><span id="pv-x" class="pv-num">--</span></div>
+                            <div class="pv-value"><span class="pv-label">Y</span><span id="pv-y" class="pv-num">--</span></div>
+                            <div class="pv-value"><span class="pv-label">Z</span><span id="pv-z" class="pv-num">--</span></div>
+                        </div>
+                        <!-- Calibration Controls -->
+                        <div class="pv-calibration" id="pv-calibration" style="display:none;">
+                            <div style="font-size:10px;color:#666;margin:8px 0 4px;">CALIBRATION</div>
+                            <div class="pv-cal-row">
+                                <button id="btn-cal-center" class="btn btn-sm" title="Capture center position">Center</button>
+                                <button id="btn-cal-left" class="btn btn-sm" title="Capture supinate position">Supinate</button>
+                                <button id="btn-cal-right" class="btn btn-sm" title="Capture pronate position">Pronate</button>
+                            </div>
+                            <div class="pv-cal-row" style="margin-top:6px;">
+                                <label style="font-size:10px;">Sensitivity L:</label>
+                                <input type="range" id="pv-sens-left" min="10" max="300" value="100" style="width:60px;">
+                                <span id="pv-sens-left-val" style="font-size:10px;">1.0</span>
+                            </div>
+                            <div class="pv-cal-row">
+                                <label style="font-size:10px;">Sensitivity R:</label>
+                                <input type="range" id="pv-sens-right" min="10" max="300" value="100" style="width:60px;">
+                                <span id="pv-sens-right-val" style="font-size:10px;">1.0</span>
+                            </div>
+                            <div class="pv-cal-row" style="margin-top:6px;">
+                                <select id="pv-profile-select" style="flex:1;font-size:10px;"></select>
+                                <button id="btn-cal-save" class="btn btn-sm">Save</button>
+                                <button id="btn-cal-load" class="btn btn-sm">Load</button>
+                            </div>
+                        </div>
+                        <div class="pv-iframe-container">
+                            <iframe id="pv-iframe" src="paddlevision.iframe.html" allow="camera; midi"></iframe>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Panel (Pong AI) -->
+                <div class="terrain-panel collapsed" data-panel="pong-ai" data-category="ai">
+                    <div class="terrain-panel-header">
+                        <span class="terrain-panel-title">AI Controller</span>
+                        <span class="panel-mini-status" id="ai-mini-status"></span>
+                        <span style="display:flex;gap:4px;">
+                            <button id="btn-ai-toggle" class="btn btn-sm">Start AI</button>
+                            <button id="btn-game-start" class="btn btn-sm">Play</button>
+                            <button class="btn-fullscreen" title="Toggle fullscreen">&#x26F6;</button>
+                        </span>
+                    </div>
+                    <div class="terrain-panel-body">
+                        <div class="ai-controls">
+                            <div class="ai-status" id="ai-status">AI Stopped</div>
+                            <div class="ai-row">
+                                <label><input type="checkbox" id="ai-p1" checked> P1 (Left)</label>
+                                <input type="range" id="ai-p1-skill" min="0" max="100" value="80">
+                                <span id="ai-p1-skill-val">80%</span>
+                            </div>
+                            <div class="ai-row">
+                                <label><input type="checkbox" id="ai-p2" checked> P2 (Right)</label>
+                                <input type="range" id="ai-p2-skill" min="0" max="100" value="80">
+                                <span id="ai-p2-skill-val">80%</span>
+                            </div>
+                            <div class="ai-row">
+                                <label>Noise:</label>
+                                <input type="range" id="ai-noise" min="0" max="50" value="10">
+                                <span id="ai-noise-val">10%</span>
+                            </div>
+                            <div class="ai-state" id="ai-state">Ball: -- | P1: -- | P2: --</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Region: Logging panels (full-width, compact) -->
+            <div class="terrain-bottom" id="region-bottom">
+                <!-- Log Panel -->
+                <div class="terrain-panel collapsed" data-panel="log" data-category="logging">
+                    <div class="terrain-panel-header">
+                        <span class="terrain-panel-title">Log <span class="panel-mini-status" id="log-count">[0]</span></span>
+                        <span class="log-options">
+                            <label><input type="checkbox" id="opt-delta" checked> dt</label>
+                            <label><input type="checkbox" id="opt-stddev"> stddev</label>
+                            <label><input type="checkbox" id="opt-bpm"> BPM</label>
+                            <button id="btn-log-clear" class="btn btn-sm">Clear</button>
+                        </span>
+                    </div>
+                    <div class="terrain-panel-body">
+                        <div id="log" class="log"></div>
+                    </div>
+                </div>
+
+                <!-- Latency Panel -->
+                <div class="terrain-panel collapsed" data-panel="latency" data-category="logging">
+                    <div class="terrain-panel-header">
+                        <span class="terrain-panel-title">Latency <span class="panel-mini-status" id="latency-mini">[--ms]</span></span>
                         <span style="display:flex;gap:6px;align-items:center;">
                             <button id="btn-latency-info" class="btn-ghost" title="Latency info">?</button>
                             <button id="btn-latency-reset" class="btn btn-sm">Reset</button>
@@ -95,30 +209,11 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Sidebar -->
-            <div class="terrain-sidebar" id="region-sidebar">
-                <!-- Log Panel -->
-                <div class="terrain-panel" data-panel="log">
-                    <div class="terrain-panel-header">
-                        <span class="terrain-panel-title">Log</span>
-                        <span class="log-options">
-                            <label><input type="checkbox" id="opt-delta" checked> dt</label>
-                            <label><input type="checkbox" id="opt-stddev"> stddev</label>
-                            <label><input type="checkbox" id="opt-bpm"> BPM</label>
-                            <button id="btn-log-clear" class="btn btn-sm">Clear</button>
-                        </span>
-                    </div>
-                    <div class="terrain-panel-body">
-                        <div id="log" class="log"></div>
-                    </div>
-                </div>
 
                 <!-- Raw Panel -->
-                <div class="terrain-panel" data-panel="raw">
+                <div class="terrain-panel collapsed" data-panel="raw" data-category="logging">
                     <div class="terrain-panel-header">
-                        <span class="terrain-panel-title">Raw</span>
+                        <span class="terrain-panel-title">Raw <span class="panel-mini-status" id="raw-active"></span></span>
                         <button id="btn-copy" class="btn btn-sm">Copy</button>
                     </div>
                     <div class="terrain-panel-body">
@@ -126,57 +221,27 @@
                     </div>
                 </div>
 
-                <!-- Pong AI Panel -->
-                <div class="terrain-panel" data-panel="pong-ai">
+                <!-- Protocol Panel -->
+                <div class="terrain-panel collapsed" data-panel="protocol" data-category="logging">
                     <div class="terrain-panel-header">
-                        <span class="terrain-panel-title">Pong AI</span>
-                        <span style="display:flex;gap:4px;">
-                            <button id="btn-ai-toggle" class="btn btn-sm">Start AI</button>
-                            <button id="btn-game-start" class="btn btn-sm">Play</button>
-                        </span>
+                        <span class="terrain-panel-title">Protocol <span class="protocol-version-badge">v2</span></span>
                     </div>
                     <div class="terrain-panel-body">
-                        <div class="ai-controls">
-                            <div class="ai-status" id="ai-status">AI Stopped</div>
-                            <div class="ai-row">
-                                <label><input type="checkbox" id="ai-p1" checked> P1 (Left)</label>
-                                <input type="range" id="ai-p1-skill" min="0" max="100" value="80">
-                                <span id="ai-p1-skill-val">80%</span>
-                            </div>
-                            <div class="ai-row">
-                                <label><input type="checkbox" id="ai-p2" checked> P2 (Right)</label>
-                                <input type="range" id="ai-p2-skill" min="0" max="100" value="80">
-                                <span id="ai-p2-skill-val">80%</span>
-                            </div>
-                            <div class="ai-row">
-                                <label>Noise:</label>
-                                <input type="range" id="ai-noise" min="0" max="50" value="10">
-                                <span id="ai-noise-val">10%</span>
-                            </div>
-                            <div class="ai-state" id="ai-state">Ball: -- | P1: -- | P2: --</div>
+                        <!-- Tab navigation -->
+                        <div class="protocol-tabs">
+                            <button class="protocol-tab active" data-tab="format">Format</button>
+                            <button class="protocol-tab" data-tab="controls">Controls</button>
+                            <button class="protocol-tab" data-tab="topics">Topics</button>
+                            <button class="protocol-tab" data-tab="examples">Examples</button>
+                            <button class="protocol-tab" data-tab="stream">Stream</button>
                         </div>
-                    </div>
-                </div>
-
-                <!-- PaddleVision Panel -->
-                <div class="terrain-panel" data-panel="paddlevision">
-                    <div class="terrain-panel-header">
-                        <span class="terrain-panel-title">PaddleVision</span>
-                        <span style="display:flex;gap:4px;">
-                            <button id="btn-pv-pop" class="btn btn-sm" title="Open in new window">&#8599;</button>
-                            <button id="btn-pv-connect" class="btn btn-sm">Connect</button>
-                        </span>
-                    </div>
-                    <div class="terrain-panel-body">
-                        <div class="pv-status" id="pv-status">Not connected</div>
-                        <div class="pv-values">
-                            <div class="pv-value"><span class="pv-label">Rotation</span><span id="pv-rotation" class="pv-num">--</span></div>
-                            <div class="pv-value"><span class="pv-label">X</span><span id="pv-x" class="pv-num">--</span></div>
-                            <div class="pv-value"><span class="pv-label">Y</span><span id="pv-y" class="pv-num">--</span></div>
-                            <div class="pv-value"><span class="pv-label">Z</span><span id="pv-z" class="pv-num">--</span></div>
-                        </div>
-                        <div class="pv-iframe-container">
-                            <iframe id="pv-iframe" src="paddlevision/index.html" allow="camera; midi"></iframe>
+                        <!-- Tab content -->
+                        <div class="protocol-content">
+                            <div class="protocol-tab-content active" data-content="format"></div>
+                            <div class="protocol-tab-content" data-content="controls"></div>
+                            <div class="protocol-tab-content" data-content="topics"></div>
+                            <div class="protocol-tab-content" data-content="examples"></div>
+                            <div class="protocol-tab-content" data-content="stream"></div>
                         </div>
                     </div>
                 </div>
@@ -217,6 +282,7 @@
     <script src="terrain/js/core/config.js"></script>
     <script src="terrain/js/core/events.js"></script>
     <script src="terrain/js/core/state.js"></script>
+    <script src="src/terrain/modal.js"></script>
 
     <!-- ControlDeck Core -->
     <script src="src/core/protocol.js"></script>
@@ -228,6 +294,12 @@
     <script src="src/adapters/midi.js"></script>
     <script src="src/adapters/relay.js"></script>
     <script src="src/adapters/recorder.js"></script>
+    <script src="src/adapters/hub.js"></script>
+    <script src="src/adapters/paddlevision.js"></script>
+
+    <!-- ControlDeck Storage & Optimization -->
+    <script src="src/storage/calibration-store.js"></script>
+    <script src="src/optimization/calibration-optimizer.js"></script>
 
     <!-- ControlDeck AI -->
     <script src="src/ai/controller.js"></script>
@@ -240,6 +312,7 @@
     <script src="src/panels/controller.js"></script>
     <script src="src/panels/latency.js"></script>
     <script src="src/panels/log.js"></script>
+    <script src="src/panels/protocol.js"></script>
 
     <!-- ControlDeck Entry -->
     <script src="src/index.js"></script>
@@ -280,13 +353,17 @@
             CD.Panels.Controller.setup('diagram');
             CD.Panels.Controller.setupClickSimulation(deck);
             CD.Panels.Log.setup();
+            CD.Panels.Protocol.setup();
 
             // Setup event listeners
+            console.log('[CD] Setting up event listeners...');
             setupEngineEvents();
             setupUIEvents();
+            console.log('[CD] setupUIEvents complete');
             setupPongAI();
             setupPaddleVision();
             setupCollapsiblePanels();
+            checkFirstRun();
 
             CD.Panels.Log.log('ControlDeck ready (modular)', 'info');
         }
@@ -302,9 +379,13 @@
                 document.getElementById('profile-select').value = e.profile.id;
             });
 
-            // Unified input -> update latency display
+            // Unified input -> update latency display + log
             Events.on(CD.Engine.EVENTS.INPUT, (e) => {
                 updateLatencyDisplay();
+                // Log trigger events (buttons)
+                if (e.type === 'trigger') {
+                    CD.Panels.Log.log(`${e.control} ${e.pressed ? 'DOWN' : 'UP'}`, 'input');
+                }
                 updateRawDisplay();
             });
 
@@ -313,10 +394,13 @@
                 const logEl = document.getElementById('log');
                 logEl.innerHTML += CD.Panels.Log.formatEntry(entry);
                 logEl.scrollTop = logEl.scrollHeight;
+                incrementLogCount();
             });
 
             Events.on('controldeck:log:clear', () => {
                 document.getElementById('log').innerHTML = '';
+                logCount = 0;
+                updateMiniStatus();
             });
         }
 
@@ -332,7 +416,10 @@
             // Send button
             document.getElementById('btn-send').addEventListener('click', function() {
                 this.classList.toggle('active');
-                deck.setRelayMode(this.classList.contains('active') ? 'sender' : null);
+                const mode = this.classList.contains('active') ? 'sender' : null;
+                console.log('[CD] Send clicked, setting mode:', mode);
+                deck.setRelayMode(mode);
+                console.log('[CD] After setRelayMode, relay:', deck.relay, 'mode:', deck.relay?.mode);
                 CD.Panels.Log.log(this.classList.contains('active') ? 'Sender ON' : 'Sender OFF', 'info');
             });
 
@@ -367,13 +454,13 @@
                     deck.startRecording();
                     recording = true;
                     this.classList.add('recording');
-                    this.textContent = '⏹ Stop';
+                    this.innerHTML = '<span class="btn-icon">\u25A0</span> Stop';
                     CD.Panels.Log.log('Recording started', 'info');
                 } else {
                     const data = deck.stopRecording();
                     recording = false;
                     this.classList.remove('recording');
-                    this.textContent = '⏺ Record';
+                    this.innerHTML = '<span class="btn-icon">\u25CF</span> Rec';
                     CD.Panels.Log.log(`Recorded ${data.length} events`, 'info');
                     navigator.clipboard.writeText(deck.exportRecording());
                     CD.Panels.Log.log('Copied to clipboard', 'info');
@@ -406,9 +493,7 @@
             document.getElementById('btn-latency-info').addEventListener('click', () => {
                 document.getElementById('latency-popup').classList.add('visible');
             });
-            document.getElementById('btn-help').addEventListener('click', () => {
-                document.getElementById('help-popup').classList.add('visible');
-            });
+            document.getElementById('btn-help').addEventListener('click', showHelpModal);
             document.querySelectorAll('.popup-overlay').forEach(popup => {
                 popup.addEventListener('click', (e) => {
                     if (e.target.classList.contains('popup-overlay') || e.target.classList.contains('popup-close')) {
@@ -416,6 +501,62 @@
                     }
                 });
             });
+        }
+
+        // =========================================================
+        // HELP MODAL
+        // =========================================================
+        const HELP_CONTENT = `
+            <h4>Welcome to ControlDeck</h4>
+            <p>ControlDeck is a <span class="highlight">unified controller interface</span> that lets you use gamepads, MIDI controllers, and hand tracking to control any web application.</p>
+
+            <h4>Getting Started</h4>
+            <ul>
+                <li><span class="highlight">Connect a controller</span> - Plug in a gamepad or click MIDI to enable MIDI input</li>
+                <li><span class="highlight">Send to other apps</span> - Click "Send" to broadcast input via BroadcastChannel</li>
+                <li><span class="highlight">Receive from other tabs</span> - Click "Receive" to get input from other ControlDeck instances</li>
+            </ul>
+
+            <h4>Panel Navigation</h4>
+            <ul>
+                <li><span class="kbd">Double-click</span> panel header to collapse/expand</li>
+                <li>Use <span class="highlight">Min</span>/<span class="highlight">Full</span>/<span class="highlight">Dev</span> presets for quick layouts</li>
+                <li>Click <span class="highlight">&#x26F6;</span> to make a panel fullscreen</li>
+            </ul>
+
+            <h4>Tetra Control Protocol</h4>
+            <p>ControlDeck uses the <span class="highlight">Tetra Control Protocol</span> to send unified input events:</p>
+            <pre>{ t: 'input', src: 'gamepad', ctrl: 'left-x', val: 0.5 }</pre>
+            <p>Standard controls: <code>left-x</code>, <code>left-y</code>, <code>a</code>, <code>b</code>, <code>hand-theta</code>, etc.</p>
+
+            <h4>Integration</h4>
+            <p>Add the polyfill to your app to receive ControlDeck input:</p>
+            <pre>&lt;script src="controldeck-polyfill.js"&gt;&lt;/script&gt;</pre>
+        `;
+
+        function showHelpModal() {
+            Terrain.Modal.show({
+                id: 'help-modal',
+                title: 'ControlDeck Help',
+                content: HELP_CONTENT,
+                size: 'md',
+                onClose: () => {
+                    // Mark first-run complete
+                    const state = getLayoutState();
+                    if (state._firstRun) {
+                        state._firstRun = false;
+                        saveLayoutState(state);
+                    }
+                }
+            });
+        }
+
+        function checkFirstRun() {
+            const state = getLayoutState();
+            if (state._firstRun) {
+                // Show help modal on first run
+                setTimeout(() => showHelpModal(), 500);
+            }
         }
 
         // =========================================================
@@ -440,6 +581,9 @@
                 document.getElementById('spark-line').setAttribute('points', pts);
                 document.getElementById('spark-area').setAttribute('points', `0,32 ${pts} 300,32`);
             }
+
+            // Update mini-status badges
+            updateMiniStatus();
         }
 
         // =========================================================
@@ -546,13 +690,22 @@
         }
 
         // =========================================================
-        // PADDLEVISION
+        // PADDLEVISION (TDP-based)
         // =========================================================
-        let pvConnected = false, pvPollInterval = null;
+        let pvConnected = false;
+        let calibrationStore = null;
 
         function setupPaddleVision() {
+            // Initialize calibration store
+            if (CD.CalibrationStore) {
+                calibrationStore = new CD.CalibrationStore();
+                calibrationStore.init().then(() => {
+                    loadCalibrationProfiles();
+                });
+            }
+
             document.getElementById('btn-pv-pop').addEventListener('click', () => {
-                window.open('paddlevision/index.html', 'PaddleVision', 'width=800,height=900');
+                window.open('paddlevision.iframe.html', 'PaddleVision', 'width=400,height=500');
             });
 
             document.getElementById('btn-pv-connect').addEventListener('click', function() {
@@ -564,6 +717,142 @@
                     this.textContent = 'Disconnect';
                 }
             });
+
+            // Calibration controls
+            setupCalibrationControls();
+        }
+
+        function setupCalibrationControls() {
+            // Reference point capture buttons
+            document.getElementById('btn-cal-center')?.addEventListener('click', () => {
+                if (deck.paddlevision) {
+                    deck.paddlevision.captureReferencePoint('center');
+                    CD.Panels.Log.log('Captured center position', 'info');
+                }
+            });
+            document.getElementById('btn-cal-left')?.addEventListener('click', () => {
+                if (deck.paddlevision) {
+                    deck.paddlevision.captureReferencePoint('supinate');
+                    CD.Panels.Log.log('Captured supinate position', 'info');
+                }
+            });
+            document.getElementById('btn-cal-right')?.addEventListener('click', () => {
+                if (deck.paddlevision) {
+                    deck.paddlevision.captureReferencePoint('pronate');
+                    CD.Panels.Log.log('Captured pronate position', 'info');
+                }
+            });
+
+            // Sensitivity sliders
+            document.getElementById('pv-sens-left')?.addEventListener('input', (e) => {
+                const val = e.target.value / 100;
+                document.getElementById('pv-sens-left-val').textContent = val.toFixed(1);
+                if (deck.paddlevision) {
+                    const tuning = deck.paddlevision.getTuning();
+                    deck.paddlevision.setTuning({
+                        ...tuning,
+                        sensitivity: { ...tuning.sensitivity, left: val }
+                    });
+                }
+            });
+            document.getElementById('pv-sens-right')?.addEventListener('input', (e) => {
+                const val = e.target.value / 100;
+                document.getElementById('pv-sens-right-val').textContent = val.toFixed(1);
+                if (deck.paddlevision) {
+                    const tuning = deck.paddlevision.getTuning();
+                    deck.paddlevision.setTuning({
+                        ...tuning,
+                        sensitivity: { ...tuning.sensitivity, right: val }
+                    });
+                }
+            });
+
+            // Save/Load buttons
+            document.getElementById('btn-cal-save')?.addEventListener('click', async () => {
+                if (!deck.paddlevision || !calibrationStore) return;
+                const cal = deck.paddlevision.getCalibration();
+                const name = prompt('Profile name:', `Profile ${Date.now()}`);
+                if (name) {
+                    cal.name = name;
+                    const id = await calibrationStore.save(cal);
+                    await loadCalibrationProfiles();
+                    document.getElementById('pv-profile-select').value = id;
+                    CD.Panels.Log.log(`Saved: ${name}`, 'info');
+                }
+            });
+
+            document.getElementById('btn-cal-load')?.addEventListener('click', async () => {
+                if (!calibrationStore) return;
+                const select = document.getElementById('pv-profile-select');
+                const id = select.value;
+                if (!id) return;
+                const profile = await calibrationStore.load(id);
+                if (profile && deck.paddlevision) {
+                    deck.paddlevision.setCalibration(profile);
+                    // Update UI
+                    document.getElementById('pv-sens-left').value = (profile.tuning?.sensitivity?.left || 1) * 100;
+                    document.getElementById('pv-sens-left-val').textContent = (profile.tuning?.sensitivity?.left || 1).toFixed(1);
+                    document.getElementById('pv-sens-right').value = (profile.tuning?.sensitivity?.right || 1) * 100;
+                    document.getElementById('pv-sens-right-val').textContent = (profile.tuning?.sensitivity?.right || 1).toFixed(1);
+                    CD.Panels.Log.log(`Loaded: ${profile.name}`, 'info');
+                }
+            });
+        }
+
+        async function loadCalibrationProfiles() {
+            if (!calibrationStore) return;
+            const profiles = await calibrationStore.list();
+            const select = document.getElementById('pv-profile-select');
+            if (!select) return;
+            select.innerHTML = '<option value="">Select profile...</option>';
+            profiles.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.name;
+                select.appendChild(opt);
+            });
+        }
+
+        // TDP message handler for PaddleVision iframe
+        function handleTDPMessage(e) {
+            if (e.data?._proto !== 'tdp') return;
+            if (e.data._browser?.iframeId !== 'paddlevision') return;
+
+            const { topic, type, payload } = e.data;
+
+            // Handle control values
+            if (type === 'control' && topic.startsWith('tetra/hand/')) {
+                const control = payload.control;
+                const value = payload.value;
+                const displayVal = Math.round(value * 127);
+
+                if (control === 'hand-theta' || control === 'theta') {
+                    document.getElementById('pv-rotation').textContent = displayVal;
+                } else if (control === 'hand-x' || control === 'x') {
+                    document.getElementById('pv-x').textContent = displayVal;
+                } else if (control === 'hand-y' || control === 'y') {
+                    document.getElementById('pv-y').textContent = displayVal;
+                } else if (control === 'hand-spread' || control === 'spread') {
+                    document.getElementById('pv-z').textContent = displayVal;
+                }
+            }
+
+            // Handle status events
+            if (type === 'event' && topic === 'tetra/paddlevision/status') {
+                const statusEl = document.getElementById('pv-status');
+                if (payload.event === 'started') {
+                    statusEl.textContent = 'Running';
+                    statusEl.classList.add('connected');
+                } else if (payload.event === 'stopped') {
+                    statusEl.textContent = 'Stopped';
+                    statusEl.classList.remove('connected');
+                }
+            }
+
+            // Handle ready event
+            if (type === 'event' && payload.event === 'ready') {
+                document.getElementById('pv-status').textContent = 'Ready';
+            }
         }
 
         function connectPaddleVision() {
@@ -572,71 +861,204 @@
             pvConnected = true;
             statusEl.textContent = 'Connecting...';
 
-            pvPollInterval = setInterval(() => {
-                try {
-                    const pv = iframe.contentWindow?.PVision;
-                    if (pv) {
-                        const vals = pv.getMIDIValues();
-                        document.getElementById('pv-rotation').textContent = vals.rotation;
-                        document.getElementById('pv-x').textContent = vals.x;
-                        document.getElementById('pv-y').textContent = vals.y;
-                        document.getElementById('pv-z').textContent = vals.z;
-                        statusEl.textContent = pv.state.hand.detected
-                            ? (pv.isCalibrated() ? 'Calibrated' : 'Hand detected')
-                            : 'No hand';
-                        statusEl.classList.toggle('connected', pv.state.hand.detected);
-                    }
-                } catch (e) {
-                    statusEl.textContent = 'Cross-origin blocked';
-                    statusEl.classList.remove('connected');
-                }
-            }, 33);
+            // Show calibration controls
+            document.getElementById('pv-calibration').style.display = 'block';
+
+            // Listen for TDP messages from iframe
+            window.addEventListener('message', handleTDPMessage);
+
+            // Send start command via TDP
+            iframe.contentWindow.postMessage({
+                _proto: 'tdp',
+                _v: 1,
+                _t: Date.now() / 1000,
+                _id: 'cmd-start-' + Date.now(),
+                topic: 'tetra/paddlevision/command',
+                type: 'command',
+                payload: { cmd: 'start', args: { source: 'mock' } }
+            }, '*');
+
+            statusEl.textContent = 'Connected';
+            statusEl.classList.add('connected');
         }
 
         function disconnectPaddleVision() {
-            if (pvPollInterval) clearInterval(pvPollInterval);
+            const iframe = document.getElementById('pv-iframe');
+
+            // Send stop command via TDP
+            iframe.contentWindow.postMessage({
+                _proto: 'tdp',
+                _v: 1,
+                _t: Date.now() / 1000,
+                _id: 'cmd-stop-' + Date.now(),
+                topic: 'tetra/paddlevision/command',
+                type: 'command',
+                payload: { cmd: 'stop', args: {} }
+            }, '*');
+
+            window.removeEventListener('message', handleTDPMessage);
             pvConnected = false;
             document.getElementById('pv-status').textContent = 'Not connected';
             document.getElementById('pv-status').classList.remove('connected');
+            document.getElementById('pv-calibration').style.display = 'none';
             ['pv-rotation', 'pv-x', 'pv-y', 'pv-z'].forEach(id => {
                 document.getElementById(id).textContent = '--';
             });
         }
 
         // =========================================================
-        // COLLAPSIBLE PANELS
+        // PANEL STATE MANAGEMENT (v2)
         // =========================================================
+        const PANEL_STORAGE_KEY = 'controldeck-layout-v2';
+        const PRESETS = {
+            minimal: { gamepad: false, paddlevision: true, 'pong-ai': true, log: true, latency: true, raw: true, protocol: true },
+            full: { gamepad: false, paddlevision: false, 'pong-ai': false, log: true, latency: false, raw: true, protocol: true },
+            dev: { gamepad: false, paddlevision: false, 'pong-ai': false, log: false, latency: false, raw: false, protocol: false }
+        };
+        let logCount = 0;
+
+        function getLayoutState() {
+            try {
+                const stored = localStorage.getItem(PANEL_STORAGE_KEY);
+                if (stored) {
+                    const state = JSON.parse(stored);
+                    if (state._version === 2) return state;
+                }
+            } catch (e) {}
+            // Default state (first run or migration)
+            return {
+                _version: 2,
+                _firstRun: true,
+                preset: 'minimal',
+                panels: {}
+            };
+        }
+
+        function saveLayoutState(state) {
+            localStorage.setItem(PANEL_STORAGE_KEY, JSON.stringify(state));
+        }
+
         function setupCollapsiblePanels() {
             document.querySelectorAll('.terrain-panel[data-panel]').forEach(panel => {
                 const header = panel.querySelector('.terrain-panel-header');
                 header.addEventListener('dblclick', (e) => {
                     if (e.target.closest('button, input, label')) return;
                     panel.classList.toggle('collapsed');
-                    savePanelState();
+                    savePanelUserState(panel.dataset.panel, panel.classList.contains('collapsed'));
                 });
                 header.addEventListener('mousedown', (e) => {
                     if (e.detail > 1) e.preventDefault();
                 });
             });
+
+            // Fullscreen toggles
+            document.querySelectorAll('.btn-fullscreen').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const panel = btn.closest('.terrain-panel');
+                    panel.classList.toggle('fullscreen');
+                    btn.textContent = panel.classList.contains('fullscreen') ? '\u2716' : '\u26F6';
+                });
+            });
+
+            // Preset buttons
+            document.getElementById('preset-minimal')?.addEventListener('click', () => applyPreset('minimal'));
+            document.getElementById('preset-full')?.addEventListener('click', () => applyPreset('full'));
+            document.getElementById('preset-dev')?.addEventListener('click', () => applyPreset('dev'));
+
             restorePanelState();
         }
 
-        function savePanelState() {
-            const state = {};
-            document.querySelectorAll('.terrain-panel[data-panel]').forEach(p => {
-                state[p.dataset.panel] = p.classList.contains('collapsed');
-            });
-            localStorage.setItem('controldeck-panels', JSON.stringify(state));
+        function savePanelUserState(panelName, collapsed) {
+            const state = getLayoutState();
+            state.panels[panelName] = { collapsed, userSet: true };
+            state._firstRun = false;
+            saveLayoutState(state);
+            updatePresetButtons();
         }
 
         function restorePanelState() {
-            try {
-                const state = JSON.parse(localStorage.getItem('controldeck-panels') || '{}');
-                Object.entries(state).forEach(([name, collapsed]) => {
-                    const panel = document.querySelector(`.terrain-panel[data-panel="${name}"]`);
-                    if (panel && collapsed) panel.classList.add('collapsed');
+            const state = getLayoutState();
+
+            // If first run, apply minimal preset (all collapsed except controller hero)
+            if (state._firstRun) {
+                applyPreset('minimal');
+                return;
+            }
+
+            // Restore user's panel states
+            document.querySelectorAll('.terrain-panel[data-panel]').forEach(panel => {
+                const name = panel.dataset.panel;
+                const panelState = state.panels[name];
+                if (panelState && panelState.userSet) {
+                    panel.classList.toggle('collapsed', panelState.collapsed);
+                }
+            });
+
+            updatePresetButtons();
+        }
+
+        function applyPreset(presetName) {
+            const preset = PRESETS[presetName];
+            if (!preset) return;
+
+            document.querySelectorAll('.terrain-panel[data-panel]').forEach(panel => {
+                const name = panel.dataset.panel;
+                if (name in preset) {
+                    panel.classList.toggle('collapsed', preset[name]);
+                }
+            });
+
+            // Save preset choice
+            const state = getLayoutState();
+            state.preset = presetName;
+            state._firstRun = false;
+            // Clear userSet flags since we're applying preset
+            Object.keys(state.panels).forEach(k => {
+                if (state.panels[k]) state.panels[k].userSet = false;
+            });
+            saveLayoutState(state);
+
+            updatePresetButtons();
+            CD.Panels.Log.log(`Layout: ${presetName}`, 'info');
+        }
+
+        function updatePresetButtons() {
+            const state = getLayoutState();
+            ['minimal', 'full', 'dev'].forEach(p => {
+                const btn = document.getElementById(`preset-${p}`);
+                if (btn) btn.classList.toggle('active', state.preset === p);
+            });
+        }
+
+        // Update mini-status badges
+        function updateMiniStatus() {
+            // Log count
+            document.getElementById('log-count').textContent = `[${logCount}]`;
+
+            // Latency
+            const latencyEl = document.getElementById('input-age');
+            const latencyVal = latencyEl?.textContent || '--';
+            document.getElementById('latency-mini').textContent = `[${latencyVal}ms]`;
+
+            // Raw active controls
+            const state = deck?.getState();
+            if (state) {
+                const active = [];
+                state.buttons.forEach((b, i) => {
+                    if (b.pressed) active.push(CD.PROFILES.generic.mapping[i] || i);
                 });
-            } catch (e) {}
+                state.axes.forEach((v, i) => {
+                    if (Math.abs(v) > 0.2) active.push(CD.PROFILES.generic.axes[i] || `A${i}`);
+                });
+                const rawEl = document.getElementById('raw-active');
+                if (rawEl) rawEl.textContent = active.length ? `[${active.slice(0,3).join(',')}]` : '';
+            }
+        }
+
+        // Increment log count
+        function incrementLogCount() {
+            logCount++;
+            updateMiniStatus();
         }
 
         // Initialize

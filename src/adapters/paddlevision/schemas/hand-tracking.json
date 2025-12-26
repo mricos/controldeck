@@ -1,0 +1,120 @@
+{
+  "id": "hand-basic",
+  "name": "Basic Hand Tracking",
+  "version": 1,
+
+  "landmarks": {
+    "WRIST":      { "index": 0,  "role": "anchor" },
+    "THUMB_CMC":  { "index": 1,  "role": "joint" },
+    "THUMB_MCP":  { "index": 2,  "role": "joint" },
+    "THUMB_IP":   { "index": 3,  "role": "joint" },
+    "THUMB_TIP":  { "index": 4,  "role": "fingertip" },
+    "INDEX_MCP":  { "index": 5,  "role": "anchor" },
+    "INDEX_PIP":  { "index": 6,  "role": "joint" },
+    "INDEX_DIP":  { "index": 7,  "role": "joint" },
+    "INDEX_TIP":  { "index": 8,  "role": "fingertip" },
+    "MIDDLE_MCP": { "index": 9,  "role": "joint" },
+    "MIDDLE_PIP": { "index": 10, "role": "joint" },
+    "MIDDLE_DIP": { "index": 11, "role": "joint" },
+    "MIDDLE_TIP": { "index": 12, "role": "fingertip" },
+    "RING_MCP":   { "index": 13, "role": "joint" },
+    "RING_PIP":   { "index": 14, "role": "joint" },
+    "RING_DIP":   { "index": 15, "role": "joint" },
+    "RING_TIP":   { "index": 16, "role": "fingertip" },
+    "PINKY_MCP":  { "index": 17, "role": "anchor" },
+    "PINKY_PIP":  { "index": 18, "role": "joint" },
+    "PINKY_DIP":  { "index": 19, "role": "joint" },
+    "PINKY_TIP":  { "index": 20, "role": "fingertip" }
+  },
+
+  "derived": {
+    "hand-center": {
+      "type": "average",
+      "inputs": ["WRIST", "INDEX_MCP", "PINKY_MCP"],
+      "components": ["x", "y"],
+      "description": "Palm center position"
+    },
+    "hand-rotation": {
+      "type": "angle",
+      "from": "INDEX_MCP",
+      "to": "PINKY_MCP",
+      "description": "Hand rotation angle (radians)"
+    },
+    "finger-spread": {
+      "type": "triangleArea",
+      "points": ["THUMB_TIP", "INDEX_TIP", "MIDDLE_TIP"],
+      "normalize": { "min": 0.001, "max": 0.05, "outputMax": 1.0 },
+      "description": "Fingertip spread area"
+    },
+    "hand-depth": {
+      "type": "average",
+      "inputs": ["WRIST", "INDEX_MCP", "PINKY_MCP"],
+      "components": ["z"],
+      "description": "Hand depth (Z axis)"
+    },
+    "pinch-distance": {
+      "type": "distance",
+      "from": "THUMB_TIP",
+      "to": "INDEX_TIP",
+      "normalize": { "min": 0, "max": 0.2, "outputMax": 1.0 },
+      "description": "Pinch gesture distance"
+    }
+  },
+
+  "outputs": {
+    "hand-x": {
+      "source": "hand-center-calibrated",
+      "component": "x",
+      "range": { "input": [-1, 1], "output": [0, 1] },
+      "topic": "hand",
+      "persist": true
+    },
+    "hand-y": {
+      "source": "hand-center-calibrated",
+      "component": "y",
+      "range": { "input": [-1, 1], "output": [0, 1] },
+      "topic": "hand",
+      "persist": true
+    },
+    "hand-theta": {
+      "source": "hand-rotation-calibrated",
+      "range": { "input": [-1, 1], "output": [0, 1] },
+      "topic": "hand",
+      "persist": true,
+      "calibrated": true
+    },
+    "hand-spread": {
+      "source": "finger-spread",
+      "range": { "input": [0, 1], "output": [0, 1] },
+      "topic": "hand",
+      "persist": true
+    },
+    "pinch": {
+      "source": "pinch-distance",
+      "range": { "input": [0, 1], "output": [0, 1] },
+      "invert": true,
+      "topic": "hand",
+      "persist": true
+    }
+  },
+
+  "pipeline": [
+    { "processor": "extract", "config": {} },
+    { "processor": "calibrate", "config": { "useReference": true } },
+    { "processor": "smooth", "config": { "factor": 0.3, "deadzone": 0.02 } },
+    { "processor": "flick-detect", "config": { "decay": 0.85, "threshold": 0.15 } }
+  ],
+
+  "calibration": {
+    "reference": {
+      "center":   { "rawRotation": 0,     "variance": 0.01 },
+      "supinate": { "rawRotation": -0.52, "variance": 0.02 },
+      "pronate":  { "rawRotation": 0.52,  "variance": 0.02 }
+    },
+    "tuning": {
+      "sensitivity": { "left": 1.0, "right": 1.0 },
+      "reverse": false,
+      "smoothing": { "factor": 0.3, "deadzone": 0.02 }
+    }
+  }
+}
